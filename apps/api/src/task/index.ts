@@ -445,7 +445,7 @@ const task = new Hono<{
       operationId: "importTasksFromText",
       tags: ["Tasks"],
       description:
-        "Use OpenAI to choose workspace/project and transform notes into imported tasks",
+        "Use Gemini to choose workspace/project and transform notes into imported tasks",
       responses: {
         200: {
           description: "Tasks imported from free text",

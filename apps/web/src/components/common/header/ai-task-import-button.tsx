@@ -41,7 +41,7 @@ export default function AiTaskImportButton() {
       toast.dismiss(loadingId);
       setPlan(result);
     } catch (error) {
-      toast.error("Analysis failed. Check OpenAI config or input text.");
+      toast.error("Analysis failed. Check Gemini config or input text.");
       console.error(error);
     }
   };
@@ -74,7 +74,7 @@ export default function AiTaskImportButton() {
         },
       });
     } catch (error) {
-      toast.error("Import failed. Check OpenAI config or input text.");
+      toast.error("Import failed. Check Gemini config or input text.");
       console.error(error);
     }
   };
