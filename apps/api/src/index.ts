@@ -126,7 +126,10 @@ function buildContentDisposition(filename: string) {
 
 function isPublicAssetReadRequest(method: string, path: string) {
   const isReadMethod = method === "GET" || method === "HEAD";
-  return isReadMethod && path.startsWith("/api/asset/");
+  return (
+    isReadMethod &&
+    (path.startsWith("/api/asset/") || path.startsWith("/asset/"))
+  );
 }
 
 export function createApp() {
