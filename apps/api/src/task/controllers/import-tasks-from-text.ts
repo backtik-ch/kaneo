@@ -23,7 +23,7 @@ type AiImportPlan = {
   tasks: ImportTask[];
 };
 
-const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 function buildPrompt(
   notes: string,
@@ -45,14 +45,22 @@ function buildPrompt(
   ].join("\n");
 }
 
-async function callOpenAi(
+function extractJsonFromText(text: string) {
+  const fenced = text.match(/```json\s*([\s\S]*?)\s*```/i);
+  if (fenced?.[1]) {
+    return fenced[1];
+  }
+  return text.trim();
+}
+
+async function callGemini(
   notes: string,
   userId: string,
 ): Promise<AiImportPayload> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
     throw new HTTPException(500, {
-      message: "OPENAI_API_KEY is not configured",
+      message: "GEMINI_API_KEY is not configured",
     });
   }
 
@@ -109,51 +117,48 @@ async function callOpenAi(
   const workspaces = Array.from(workspaceMap.values());
   const prompt = buildPrompt(notes, workspaces);
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: DEFAULT_MODEL,
-      temperature: 0.2,
-      messages: [
-        {
-          role: "system",
-          content:
-            "Tu es un assistant de planification. Réponds uniquement en JSON valide.",
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(DEFAULT_MODEL)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [
+            {
+              text: "Tu es un assistant de planification. Réponds uniquement en JSON valide.",
+            },
+          ],
         },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "task_import_plan",
-          strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
             properties: {
-              workspaceId: { type: "string" },
-              projectId: { type: "string" },
+              workspaceId: { type: "STRING" },
+              projectId: { type: "STRING" },
               tasks: {
-                type: "array",
+                type: "ARRAY",
                 minItems: 1,
                 items: {
-                  type: "object",
-                  additionalProperties: false,
+                  type: "OBJECT",
                   properties: {
-                    title: { type: "string" },
-                    description: { type: "string" },
-                    status: { type: "string" },
-                    priority: { type: "string" },
-                    startDate: { type: "string" },
-                    dueDate: { type: "string" },
-                    userId: { type: "string" },
+                    title: { type: "STRING" },
+                    description: { type: "STRING" },
+                    status: { type: "STRING" },
+                    priority: { type: "STRING" },
+                    startDate: { type: "STRING" },
+                    dueDate: { type: "STRING" },
+                    userId: { type: "STRING" },
                   },
                   required: ["title", "description", "status", "priority"],
                 },
@@ -162,34 +167,38 @@ async function callOpenAi(
             required: ["workspaceId", "projectId", "tasks"],
           },
         },
-      },
-    }),
-  });
+      }),
+    },
+  );
 
   if (!response.ok) {
     const errorText = await response.text();
     throw new HTTPException(502, {
-      message: `OpenAI request failed: ${errorText}`,
+      message: `Gemini request failed: ${errorText}`,
     });
   }
 
   const json = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string | null } }>;
+    candidates?: Array<{
+      content?: { parts?: Array<{ text?: string }> };
+    }>;
   };
-  const content = json.choices?.[0]?.message?.content;
+  const content = json.candidates?.[0]?.content?.parts
+    ?.map((part) => part.text ?? "")
+    .join("\n");
 
   if (!content) {
     throw new HTTPException(502, {
-      message: "OpenAI returned an empty response",
+      message: "Gemini returned an empty response",
     });
   }
 
   let payload: AiImportPayload;
   try {
-    payload = JSON.parse(content) as AiImportPayload;
+    payload = JSON.parse(extractJsonFromText(content)) as AiImportPayload;
   } catch {
     throw new HTTPException(502, {
-      message: "OpenAI returned invalid JSON",
+      message: "Gemini returned invalid JSON",
     });
   }
 
@@ -200,13 +209,13 @@ async function callOpenAi(
 
   if (!allowedWorkspace || !allowedProject) {
     throw new HTTPException(400, {
-      message: "OpenAI selected a workspace/project outside allowed scope",
+      message: "Gemini selected a workspace/project outside allowed scope",
     });
   }
 
   if (!Array.isArray(payload.tasks) || payload.tasks.length === 0) {
     throw new HTTPException(400, {
-      message: "OpenAI did not return any task to import",
+      message: "Gemini did not return any task to import",
     });
   }
 
@@ -214,7 +223,7 @@ async function callOpenAi(
 }
 
 async function importTasksFromText(notes: string, userId: string) {
-  const ai = await callOpenAi(notes, userId);
+  const ai = await callGemini(notes, userId);
   const selectedProject = await db.query.projectTable.findFirst({
     where: eq(projectTable.id, ai.projectId),
     with: {
