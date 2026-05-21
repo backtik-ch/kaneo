@@ -31,7 +31,7 @@ import WorkspaceLayout from "@/components/common/workspace-layout";
 import PageTitle from "@/components/page-title";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -44,6 +44,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import getColumns from "@/fetchers/column/get-columns";
 import { useUpdateTaskStatus } from "@/hooks/mutations/task/use-update-task-status";
 import { useGetMyAssignedTasks } from "@/hooks/queries/task/use-get-my-assigned-tasks";
+import { getColumnIcon } from "@/lib/column";
 import { toast } from "@/lib/toast";
 import type Task from "@/types/task";
 
@@ -64,6 +65,13 @@ const BUCKETS: Array<{ id: StatusBucket; label: string }> = [
   { id: "in_review", label: "En review" },
   { id: "done", label: "Termine" },
 ];
+const COLUMN_ICON_BY_BUCKET: Record<StatusBucket, string> = {
+  backlog: "backlog",
+  todo: "todo",
+  in_progress: "in-progress",
+  in_review: "in-review",
+  done: "done",
+};
 
 function normalizeStatus(task: {
   status: string;
@@ -195,10 +203,16 @@ function DraggableTaskCard({
           projectId: task.projectId,
           taskId: task.id,
         }}
-        className={`block rounded-md border p-2 hover:bg-accent ${isDragging ? "opacity-60" : ""}`}
+        className={`group relative block cursor-move rounded-lg border bg-background p-3 shadow-xs/5 transition-all duration-200 ease-out ${
+          isDragging
+            ? "border-ring/40 bg-card shadow-lg"
+            : "border-border hover:border-border/90 hover:bg-background hover:shadow-sm"
+        }`}
       >
-        <div className="line-clamp-2 text-sm font-medium">{task.title}</div>
-        <div className="mt-1 text-xs text-muted-foreground">
+        <div className="line-clamp-2 text-sm font-medium leading-snug">
+          {task.title}
+        </div>
+        <div className="mt-2 text-xs text-muted-foreground">
           {task.workspaceName} / {task.projectName}
         </div>
         <div className="mt-1 text-xs text-muted-foreground">
@@ -222,7 +236,7 @@ function DroppableBucket({
     <div
       ref={setNodeRef}
       className={`min-h-[180px] rounded-md p-1 transition-colors ${
-        isOver ? "bg-accent/40" : "bg-transparent"
+        isOver ? "bg-accent/60" : "bg-transparent"
       }`}
     >
       {children}
@@ -607,30 +621,36 @@ function RouteComponent() {
             >
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
                 {BUCKETS.map((bucket) => (
-                  <Card key={bucket.id} className="min-h-[240px]">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center justify-between text-sm">
-                        <span>{bucket.label}</span>
+                  <div
+                    key={bucket.id}
+                    className="group relative flex h-full min-h-[260px] w-full flex-col rounded-xl border border-border/70 bg-muted/40 shadow-xs/5 transition-all duration-300 ease-out hover:border-border/90 dark:bg-card/90"
+                  >
+                    <div className="shrink-0 border-b border-border/60 px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                          {getColumnIcon(COLUMN_ICON_BY_BUCKET[bucket.id])}
+                          <span className="truncate">{bucket.label}</span>
+                        </div>
                         <Badge variant="secondary">
                           {grouped[bucket.id].length}
                         </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="h-full">
+                      </div>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 py-1 [-webkit-overflow-scrolling:touch]">
                       <DroppableBucket bucket={bucket.id}>
                         <SortableContext
                           items={grouped[bucket.id].map((task) => task.id)}
                           strategy={verticalListSortingStrategy}
                         >
-                          <div className="space-y-2">
+                          <div className="flex flex-col gap-2">
                             {grouped[bucket.id].map((task) => (
                               <DraggableTaskCard key={task.id} task={task} />
                             ))}
                           </div>
                         </SortableContext>
                       </DroppableBucket>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 ))}
               </div>
               <DragOverlay>
