@@ -11,7 +11,7 @@ export type ImportTasksFromTextResponse = {
 };
 
 async function importTasksFromText(notes: string) {
-  const response = await client.task["import-from-text"].$post({
+  const response = await client.task.ai["import-from-text"].$post({
     json: { notes },
   });
 

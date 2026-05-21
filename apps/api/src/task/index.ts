@@ -440,7 +440,7 @@ const task = new Hono<{
     },
   )
   .post(
-    "/import-from-text",
+    "/ai/import-from-text",
     describeRoute({
       operationId: "importTasksFromText",
       tags: ["Tasks"],

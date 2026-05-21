@@ -3,6 +3,7 @@ import { client } from "@kaneo/libs";
 export type UpdateWorkspaceGithubIntegrationRequest = {
   isActive?: boolean;
   commentTaskLinkOnGitHubIssue?: boolean;
+  projectId?: string | null;
 };
 
 async function updateWorkspaceGithubIntegration(

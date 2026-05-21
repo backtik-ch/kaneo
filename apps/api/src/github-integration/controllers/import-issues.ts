@@ -60,7 +60,7 @@ type GitHubPullRequest = {
 };
 
 export async function importIssues(
-  projectId: string,
+  projectId: string | undefined,
   integrationId?: string,
 ): Promise<ImportResult> {
   const errors: string[] = [];
@@ -68,13 +68,11 @@ export async function importIssues(
   let updated = 0;
   let skipped = 0;
 
-  const project = await db.query.projectTable.findFirst({
-    where: eq(projectTable.id, projectId),
-  });
-
-  if (!project) {
-    throw new HTTPException(404, { message: "Project not found" });
-  }
+  const project = projectId
+    ? await db.query.projectTable.findFirst({
+        where: eq(projectTable.id, projectId),
+      })
+    : null;
 
   const integration = integrationId
     ? await db.query.integrationTable.findFirst({
@@ -94,6 +92,24 @@ export async function importIssues(
 
   if (!integration) {
     throw new HTTPException(404, { message: "GitHub integration not found" });
+  }
+
+  const resolvedProjectId = project?.id ?? integration.projectId ?? null;
+  if (!resolvedProjectId) {
+    throw new HTTPException(400, {
+      message:
+        "No project mapped to this repository. Set a project on the workspace GitHub integration.",
+    });
+  }
+
+  const resolvedProject = project
+    ? project
+    : await db.query.projectTable.findFirst({
+        where: eq(projectTable.id, resolvedProjectId),
+      });
+
+  if (!resolvedProject) {
+    throw new HTTPException(404, { message: "Project not found" });
   }
 
   if (!integration.isActive) {
@@ -141,8 +157,8 @@ export async function importIssues(
       const result = await importSingleIssue(
         issue,
         integration.id,
-        projectId,
-        project.workspaceId,
+        resolvedProjectId,
+        resolvedProject.workspaceId,
         config,
         octokit,
       );
@@ -186,8 +202,8 @@ export async function importIssues(
       await linkPullRequestToTask(
         pr,
         integration.id,
-        projectId,
-        project.slug,
+        resolvedProjectId,
+        resolvedProject.slug,
         config,
       );
     } catch (error) {

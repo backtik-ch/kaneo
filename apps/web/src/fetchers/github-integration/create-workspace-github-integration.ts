@@ -3,6 +3,7 @@ import { client } from "@kaneo/libs";
 export type CreateWorkspaceGithubIntegrationRequest = {
   repositoryOwner: string;
   repositoryName: string;
+  projectId?: string | null;
 };
 
 async function createWorkspaceGithubIntegration(

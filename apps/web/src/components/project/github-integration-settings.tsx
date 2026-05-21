@@ -27,6 +27,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import type { VerifyGithubInstallationResponse } from "@/fetchers/github-integration/verify-github-installation";
@@ -38,12 +45,14 @@ import {
   useUpdateWorkspaceGithubIntegration,
 } from "@/hooks/mutations/github-integration/use-workspace-github-integrations";
 import useListWorkspaceGithubIntegrations from "@/hooks/queries/github-integration/use-list-workspace-github-integrations";
+import useGetProjects from "@/hooks/queries/project/use-get-projects";
 import { cn } from "@/lib/cn";
 import { toast } from "@/lib/toast";
 
 type GithubIntegrationFormValues = {
   repositoryOwner: string;
   repositoryName: string;
+  projectId: string;
 };
 
 export function GitHubIntegrationSettings({
@@ -72,12 +81,14 @@ export function GitHubIntegrationSettings({
             /^[a-zA-Z0-9._-]+$/,
             t("settings:githubIntegration.validation.nameInvalid"),
           ),
+        projectId: z.string().optional().default(""),
       }),
     [t],
   );
 
   const { data: integrations = [], isLoading } =
     useListWorkspaceGithubIntegrations(workspaceId);
+  const { data: projects = [] } = useGetProjects({ workspaceId });
   const { mutateAsync: createIntegration, isPending: isCreating } =
     useCreateWorkspaceGithubIntegration();
   const { mutateAsync: deleteIntegration, isPending: isDeleting } =
@@ -115,6 +126,7 @@ export function GitHubIntegrationSettings({
     defaultValues: {
       repositoryOwner: "",
       repositoryName: "",
+      projectId: "",
     },
   });
 
@@ -187,9 +199,16 @@ export function GitHubIntegrationSettings({
         return;
       }
 
-      await createIntegration({ workspaceId, data });
+      await createIntegration({
+        workspaceId,
+        data: {
+          repositoryOwner: data.repositoryOwner,
+          repositoryName: data.repositoryName,
+          projectId: data.projectId || null,
+        },
+      });
       toast.success(t("settings:githubIntegration.toast.updated"));
-      form.reset({ repositoryOwner: "", repositoryName: "" });
+      form.reset({ repositoryOwner: "", repositoryName: "", projectId: "" });
       setVerificationResult(null);
     } catch (error) {
       toast.error(
@@ -217,18 +236,16 @@ export function GitHubIntegrationSettings({
   };
 
   const handleImportIssues = async () => {
-    if (!projectId) {
-      toast.error("Select a project to import issues into tasks");
-      return;
-    }
-
     if (!selectedIntegration) {
       toast.error("Select a repository first");
       return;
     }
 
     try {
-      await importIssues({ projectId, integrationId: selectedIntegration.id });
+      await importIssues({
+        integrationId: selectedIntegration.id,
+        projectId: projectId || undefined,
+      });
       toast.success(t("settings:githubIntegration.toast.issuesImported"));
     } catch (error) {
       toast.error(
@@ -248,7 +265,7 @@ export function GitHubIntegrationSettings({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-4 border border-border rounded-md p-4 bg-sidebar">
+      <div className="space-y-4 rounded-md border border-border bg-sidebar p-4">
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
             <p className="text-sm font-medium">
@@ -262,12 +279,12 @@ export function GitHubIntegrationSettings({
           </div>
           {isConnected ? (
             <Badge variant="secondary" className="gap-1">
-              <CheckCircle className="w-3 h-3" />
+              <CheckCircle className="h-3 w-3" />
               {t("settings:githubIntegration.badgeConnected")}
             </Badge>
           ) : (
             <Badge variant="outline" className="gap-1">
-              <XCircle className="w-3 h-3" />
+              <XCircle className="h-3 w-3" />
               {t("settings:githubIntegration.badgeNotConnected")}
             </Badge>
           )}
@@ -285,59 +302,102 @@ export function GitHubIntegrationSettings({
                   <div
                     key={integration.id}
                     className={cn(
-                      "flex items-center justify-between rounded-md border p-3",
+                      "rounded-md border p-3",
                       selected ? "border-primary bg-accent" : "border-border",
                     )}
                   >
-                    <button
-                      type="button"
-                      className="flex min-w-0 items-center gap-2 text-left"
-                      onClick={() => setSelectedIntegrationId(integration.id)}
-                    >
-                      <Github className="size-4" />
-                      <span className="truncate font-medium">{fullName}</span>
-                      <a
-                        href={`https://github.com/${fullName}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary"
-                        onClick={(e) => e.stopPropagation()}
+                    <div className="flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        className="flex min-w-0 items-center gap-2 text-left"
+                        onClick={() => setSelectedIntegrationId(integration.id)}
                       >
-                        <ExternalLink className="size-3" />
-                      </a>
-                    </button>
+                        <Github className="size-4" />
+                        <span className="truncate font-medium">{fullName}</span>
+                        <a
+                          href={`https://github.com/${fullName}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <ExternalLink className="size-3" />
+                        </a>
+                      </button>
 
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={integration.isActive ?? false}
-                        onCheckedChange={async (checked) => {
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={integration.isActive ?? false}
+                          onCheckedChange={async (checked) => {
+                            try {
+                              await updateIntegration({
+                                workspaceId,
+                                integrationId: integration.id,
+                                json: { isActive: checked },
+                              });
+                            } catch (error) {
+                              toast.error(
+                                error instanceof Error
+                                  ? error.message
+                                  : "Update failed",
+                              );
+                            }
+                          }}
+                          disabled={isUpdating}
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(integration.id)}
+                          disabled={isDeleting}
+                          className="gap-2"
+                        >
+                          <Trash2 className="size-3" />
+                          {t("settings:githubIntegration.disconnect")}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        Linked project
+                      </span>
+                      <Select
+                        value={integration.projectId ?? "__none__"}
+                        onValueChange={async (value) => {
                           try {
                             await updateIntegration({
                               workspaceId,
                               integrationId: integration.id,
-                              json: { isActive: checked },
+                              json: {
+                                projectId: value === "__none__" ? null : value,
+                              },
                             });
+                            toast.success("Repository project mapping updated");
                           } catch (error) {
                             toast.error(
                               error instanceof Error
                                 ? error.message
-                                : "Update failed",
+                                : "Failed to update repository mapping",
                             );
                           }
                         }}
-                        disabled={isUpdating}
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(integration.id)}
-                        disabled={isDeleting}
-                        className="gap-2"
                       >
-                        <Trash2 className="size-3" />
-                        {t("settings:githubIntegration.disconnect")}
-                      </Button>
+                        <SelectTrigger className="h-8 w-64 text-xs">
+                          <SelectValue placeholder="Auto-detect from branch" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">
+                            Auto-detect from branch
+                          </SelectItem>
+                          {projects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 );
@@ -386,7 +446,7 @@ export function GitHubIntegrationSettings({
         )}
       </div>
 
-      <div className="space-y-4 border border-border rounded-md p-4 bg-sidebar">
+      <div className="space-y-4 rounded-md border border-border bg-sidebar p-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -429,6 +489,38 @@ export function GitHubIntegrationSettings({
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="projectId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Linked project (optional)</FormLabel>
+                  <FormControl>
+                    <Select
+                      value={field.value || "__none__"}
+                      onValueChange={(value) =>
+                        field.onChange(value === "__none__" ? "" : value)
+                      }
+                    >
+                      <SelectTrigger className="h-8">
+                        <SelectValue placeholder="Auto-detect from branch" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">
+                          Auto-detect from branch
+                        </SelectItem>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
                 </FormItem>
               )}
             />
@@ -484,7 +576,7 @@ export function GitHubIntegrationSettings({
             <Separator />
             <div
               className={cn(
-                "flex items-start gap-3 p-3 border rounded-md text-sm",
+                "flex items-start gap-3 rounded-md border p-3 text-sm",
                 verificationResult.isInstalled &&
                   verificationResult.hasRequiredPermissions
                   ? "border-success/25 bg-success/10"
@@ -511,8 +603,8 @@ export function GitHubIntegrationSettings({
         )}
       </div>
 
-      {isConnected && projectId && (
-        <div className="space-y-4 border border-border rounded-md p-4 bg-sidebar">
+      {isConnected && (
+        <div className="space-y-4 rounded-md border border-border bg-sidebar p-4">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5">
               <p className="text-sm font-medium">

@@ -56,6 +56,18 @@ async function createGithubIntegration({
     workspaceId,
   });
 
+  if (projectId) {
+    const project = await db.query.projectTable.findFirst({
+      where: eq(projectTable.id, projectId),
+    });
+
+    if (!project || project.workspaceId !== resolvedWorkspaceId) {
+      throw new HTTPException(400, {
+        message: "Project does not belong to workspace",
+      });
+    }
+  }
+
   let installationId: number | null = null;
   try {
     const { data: installation } =
@@ -94,6 +106,7 @@ async function createGithubIntegration({
           .update(integrationTable)
           .set({
             isActive: true,
+            projectId: projectId ?? integration.projectId ?? null,
             updatedAt: new Date(),
           })
           .where(eq(integrationTable.id, integration.id))
@@ -101,7 +114,7 @@ async function createGithubIntegration({
 
         return {
           id: reactivated?.id,
-          projectId: projectId ?? null,
+          projectId: reactivated?.projectId ?? projectId ?? null,
           workspaceId: resolvedWorkspaceId,
           repositoryOwner,
           repositoryName,
@@ -127,7 +140,7 @@ async function createGithubIntegration({
     const [newIntegration] = await db
       .insert(integrationTable)
       .values({
-        projectId: null,
+        projectId: projectId ?? null,
         workspaceId: resolvedWorkspaceId,
         type: "github",
         config: JSON.stringify(config),
@@ -137,7 +150,7 @@ async function createGithubIntegration({
 
     return {
       id: newIntegration?.id,
-      projectId: projectId ?? null,
+      projectId: newIntegration?.projectId ?? null,
       workspaceId: resolvedWorkspaceId,
       repositoryOwner,
       repositoryName,
@@ -151,7 +164,7 @@ async function createGithubIntegration({
   const [newIntegration] = await db
     .insert(integrationTable)
     .values({
-      projectId: null,
+      projectId: projectId ?? null,
       workspaceId: resolvedWorkspaceId,
       type: "github",
       config: JSON.stringify(config),
@@ -161,7 +174,7 @@ async function createGithubIntegration({
 
   return {
     id: newIntegration?.id,
-    projectId: projectId ?? null,
+    projectId: newIntegration?.projectId ?? null,
     workspaceId: resolvedWorkspaceId,
     repositoryOwner,
     repositoryName,

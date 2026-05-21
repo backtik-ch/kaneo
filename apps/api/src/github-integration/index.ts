@@ -78,14 +78,17 @@ const githubIntegration = new Hono<{
       v.object({
         repositoryOwner: v.pipe(v.string(), v.minLength(1)),
         repositoryName: v.pipe(v.string(), v.minLength(1)),
+        projectId: v.optional(v.nullable(v.string())),
       }),
     ),
     workspaceAccess.fromParam("workspaceId"),
     async (c) => {
       const { workspaceId } = c.req.valid("param");
-      const { repositoryOwner, repositoryName } = c.req.valid("json");
+      const { repositoryOwner, repositoryName, projectId } =
+        c.req.valid("json");
       const integration = await createGithubIntegration({
         workspaceId,
+        projectId: projectId ?? undefined,
         repositoryOwner,
         repositoryName,
       });
@@ -103,6 +106,7 @@ const githubIntegration = new Hono<{
       v.object({
         isActive: v.optional(v.boolean()),
         commentTaskLinkOnGitHubIssue: v.optional(v.boolean()),
+        projectId: v.optional(v.nullable(v.string())),
       }),
     ),
     workspaceAccess.fromParam("workspaceId"),
@@ -143,10 +147,24 @@ const githubIntegration = new Hono<{
         });
       }
 
+      if (body.projectId !== undefined && body.projectId !== null) {
+        const targetProject = await db.query.projectTable.findFirst({
+          where: eq(projectTable.id, body.projectId),
+        });
+
+        if (!targetProject || targetProject.workspaceId !== workspaceId) {
+          throw new HTTPException(400, {
+            message: "Project does not belong to workspace",
+          });
+        }
+      }
+
       await db
         .update(integrationTable)
         .set({
           config: JSON.stringify(config),
+          projectId:
+            body.projectId !== undefined ? body.projectId : row.projectId,
           isActive:
             body.isActive !== undefined
               ? body.isActive
@@ -441,7 +459,7 @@ const githubIntegration = new Hono<{
     validator(
       "json",
       v.object({
-        projectId: v.string(),
+        projectId: v.optional(v.string()),
         integrationId: v.optional(v.string()),
       }),
     ),
@@ -451,23 +469,46 @@ const githubIntegration = new Hono<{
         throw new HTTPException(401, { message: "Unauthorized" });
       }
 
-      const { projectId } = c.req.valid("json");
+      const { projectId, integrationId } = c.req.valid("json");
 
-      const [project] = await db
-        .select({ workspaceId: projectTable.workspaceId })
-        .from(projectTable)
-        .where(eq(projectTable.id, projectId))
-        .limit(1);
+      let workspaceId: string | null = null;
 
-      if (!project) {
-        throw new HTTPException(404, { message: "Project not found" });
+      if (projectId) {
+        const [project] = await db
+          .select({ workspaceId: projectTable.workspaceId })
+          .from(projectTable)
+          .where(eq(projectTable.id, projectId))
+          .limit(1);
+
+        if (!project) {
+          throw new HTTPException(404, { message: "Project not found" });
+        }
+        workspaceId = project.workspaceId;
+      } else if (integrationId) {
+        const integration = await db.query.integrationTable.findFirst({
+          where: and(
+            eq(integrationTable.id, integrationId),
+            eq(integrationTable.type, "github"),
+          ),
+        });
+
+        if (!integration || !integration.workspaceId) {
+          throw new HTTPException(404, {
+            message: "GitHub integration not found",
+          });
+        }
+        workspaceId = integration.workspaceId;
+      } else {
+        throw new HTTPException(400, {
+          message: "projectId or integrationId is required",
+        });
       }
 
       const apiKey = c.get("apiKey");
       const apiKeyId = apiKey?.id;
 
-      await validateWorkspaceAccess(userId, project.workspaceId, apiKeyId);
-      c.set("workspaceId", project.workspaceId);
+      await validateWorkspaceAccess(userId, workspaceId, apiKeyId);
+      c.set("workspaceId", workspaceId);
 
       return next();
     },
