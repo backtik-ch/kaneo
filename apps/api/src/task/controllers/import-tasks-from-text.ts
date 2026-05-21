@@ -34,9 +34,10 @@ function buildPrompt(
   }>,
 ) {
   return [
-    "Tu reçois des notes de réunion client.",
+    "Tu reçois des notes de réunion client, ou un texte brut.",
     "Choisis le workspace ET le projet les plus pertinents parmi la liste fournie.",
-    "Ensuite, extrais des tâches actionnables.",
+    "Ensuite, extrais des tâches actionnables de la façon la plus intelligente possible.",
+    "Le but étant de créer des petites tâches concises mais efficace pour le développeur",
     "Réponds uniquement en JSON conforme au schéma demandé.",
     "",
     `Notes:\n${notes}`,
