@@ -3,6 +3,7 @@ import type { GitHubConfig } from "../config";
 import { createExternalLink, findExternalLink } from "../services/link-manager";
 import {
   findAllIntegrationsByRepo,
+  findTaskByBranchInWorkspace,
   findTaskByNumber,
   isTaskInFinalState,
   updateTaskStatus,
@@ -40,27 +41,48 @@ export async function handlePullRequestOpened(payload: PROpenedPayload) {
   );
 
   for (const integration of integrations) {
-    if (!integration.project) {
+    if (!integration.project && !integration.workspaceId) {
       continue;
     }
 
     const config = JSON.parse(integration.config) as GitHubConfig;
-    const projectSlug = integration.project.slug;
+    const projectSlug = integration.project?.slug ?? "";
     const branchName = pull_request.head.ref;
 
-    const taskNumber = extractTaskNumber(
-      branchName,
-      pull_request.title,
-      pull_request.body ?? undefined,
-      config,
-      projectSlug,
-    );
+    const taskNumber =
+      integration.projectId !== null
+        ? extractTaskNumber(
+            branchName,
+            pull_request.title,
+            pull_request.body ?? undefined,
+            config,
+            projectSlug,
+          )
+        : null;
 
-    if (taskNumber === null) {
+    if (taskNumber === null && !integration.workspaceId) {
       continue;
     }
 
-    const task = await findTaskByNumber(integration.projectId, taskNumber);
+    let resolvedProjectId = integration.projectId;
+    let task =
+      integration.projectId !== null && taskNumber !== null
+        ? await findTaskByNumber(integration.projectId, taskNumber)
+        : null;
+
+    if (!task && integration.workspaceId) {
+      const matched = await findTaskByBranchInWorkspace(
+        integration.workspaceId,
+        branchName,
+        config,
+        (name, cfg, slug) =>
+          extractTaskNumber(name, undefined, undefined, cfg, slug),
+      );
+      if (matched) {
+        task = matched.task;
+        resolvedProjectId = matched.projectId;
+      }
+    }
 
     if (!task) {
       continue;
@@ -93,7 +115,7 @@ export async function handlePullRequestOpened(payload: PROpenedPayload) {
     });
 
     const targetStatus = await resolveTargetStatus(
-      integration.projectId,
+      resolvedProjectId ?? task.projectId,
       "pr_opened",
       config.statusTransitions?.onPROpen || "in-review",
     );

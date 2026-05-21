@@ -697,12 +697,14 @@ export const integrationTable = pgTable(
     id: text("id")
       .$defaultFn(() => createId())
       .primaryKey(),
-    projectId: text("project_id")
-      .notNull()
-      .references(() => projectTable.id, {
-        onDelete: "cascade",
-        onUpdate: "cascade",
-      }),
+    projectId: text("project_id").references(() => projectTable.id, {
+      onDelete: "cascade",
+      onUpdate: "cascade",
+    }),
+    workspaceId: text("workspace_id").references(() => workspaceTable.id, {
+      onDelete: "cascade",
+      onUpdate: "cascade",
+    }),
     type: text("type").notNull(),
     config: text("config").notNull(),
     isActive: boolean("is_active").default(true),
@@ -714,8 +716,11 @@ export const integrationTable = pgTable(
   },
   (table) => [
     index("integration_projectId_idx").on(table.projectId),
+    index("integration_workspaceId_idx").on(table.workspaceId),
     index("integration_type_idx").on(table.type),
-    unique("integration_project_type_unique").on(table.projectId, table.type),
+    uniqueIndex("integration_project_type_unique_non_github")
+      .on(table.projectId, table.type)
+      .where(sql`${table.type} <> 'github'`),
   ],
 );
 

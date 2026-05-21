@@ -143,7 +143,8 @@ export const notificationPreferenceSchema = v.object({
 
 export const githubIntegrationSchema = v.object({
   id: v.string(),
-  projectId: v.string(),
+  projectId: v.nullable(v.string()),
+  workspaceId: v.nullable(v.string()),
   repositoryOwner: v.string(),
   repositoryName: v.string(),
   installationId: v.nullable(v.number()),

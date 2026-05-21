@@ -5,15 +5,44 @@ import { integrationTable, projectTable } from "../../database/schema";
 import { defaultGitHubConfig } from "../../plugins/github/config";
 import { getGithubApp } from "../../plugins/github/utils/github-app";
 
-async function createGithubIntegration({
-  projectId,
-  repositoryOwner,
-  repositoryName,
-}: {
-  projectId: string;
+type CreateGitHubIntegrationInput = {
+  projectId?: string;
+  workspaceId?: string;
   repositoryOwner: string;
   repositoryName: string;
-}) {
+};
+
+export async function resolveWorkspaceId(input: {
+  projectId?: string;
+  workspaceId?: string;
+}): Promise<string> {
+  if (input.workspaceId) {
+    return input.workspaceId;
+  }
+
+  if (!input.projectId) {
+    throw new HTTPException(400, {
+      message: "Either projectId or workspaceId is required",
+    });
+  }
+
+  const project = await db.query.projectTable.findFirst({
+    where: eq(projectTable.id, input.projectId),
+  });
+
+  if (!project) {
+    throw new HTTPException(404, { message: "Project not found" });
+  }
+
+  return project.workspaceId;
+}
+
+async function createGithubIntegration({
+  projectId,
+  workspaceId,
+  repositoryOwner,
+  repositoryName,
+}: CreateGitHubIntegrationInput) {
   const githubApp = getGithubApp();
 
   if (!githubApp) {
@@ -22,39 +51,10 @@ async function createGithubIntegration({
     });
   }
 
-  const project = await db.query.projectTable.findFirst({
-    where: eq(projectTable.id, projectId),
+  const resolvedWorkspaceId = await resolveWorkspaceId({
+    projectId,
+    workspaceId,
   });
-
-  if (!project) {
-    throw new HTTPException(404, { message: "Project not found" });
-  }
-
-  const allGitHubIntegrations = await db.query.integrationTable.findMany({
-    where: eq(integrationTable.type, "github"),
-  });
-
-  for (const integration of allGitHubIntegrations) {
-    if (integration.projectId === projectId) {
-      continue;
-    }
-
-    try {
-      const config = JSON.parse(integration.config);
-      if (
-        config.repositoryOwner === repositoryOwner &&
-        config.repositoryName === repositoryName
-      ) {
-        throw new HTTPException(409, {
-          message: `Repository ${repositoryOwner}/${repositoryName} is already linked to another project`,
-        });
-      }
-    } catch (error) {
-      if (error instanceof HTTPException) {
-        throw error;
-      }
-    }
-  }
 
   let installationId: number | null = null;
   try {
@@ -70,10 +70,51 @@ async function createGithubIntegration({
 
   const existingIntegration = await db.query.integrationTable.findFirst({
     where: and(
-      eq(integrationTable.projectId, projectId),
+      eq(integrationTable.workspaceId, resolvedWorkspaceId),
       eq(integrationTable.type, "github"),
     ),
   });
+
+  const allWorkspaceGitHubIntegrations =
+    await db.query.integrationTable.findMany({
+      where: and(
+        eq(integrationTable.workspaceId, resolvedWorkspaceId),
+        eq(integrationTable.type, "github"),
+      ),
+    });
+
+  for (const integration of allWorkspaceGitHubIntegrations) {
+    try {
+      const config = JSON.parse(integration.config);
+      if (
+        config.repositoryOwner === repositoryOwner &&
+        config.repositoryName === repositoryName
+      ) {
+        const [reactivated] = await db
+          .update(integrationTable)
+          .set({
+            isActive: true,
+            updatedAt: new Date(),
+          })
+          .where(eq(integrationTable.id, integration.id))
+          .returning();
+
+        return {
+          id: reactivated?.id,
+          projectId: projectId ?? null,
+          workspaceId: resolvedWorkspaceId,
+          repositoryOwner,
+          repositoryName,
+          installationId,
+          isActive: reactivated?.isActive,
+          createdAt: reactivated?.createdAt,
+          updatedAt: reactivated?.updatedAt,
+        };
+      }
+    } catch {
+      // Skip invalid config rows.
+    }
+  }
 
   const config = {
     repositoryOwner,
@@ -82,38 +123,36 @@ async function createGithubIntegration({
     ...defaultGitHubConfig,
   };
 
-  if (existingIntegration) {
-    const [updatedIntegration] = await db
-      .update(integrationTable)
-      .set({
+  if (existingIntegration && !existingIntegration.projectId) {
+    const [newIntegration] = await db
+      .insert(integrationTable)
+      .values({
+        projectId: null,
+        workspaceId: resolvedWorkspaceId,
+        type: "github",
         config: JSON.stringify(config),
         isActive: true,
-        updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(integrationTable.projectId, projectId),
-          eq(integrationTable.type, "github"),
-        ),
-      )
       .returning();
 
     return {
-      id: updatedIntegration?.id,
-      projectId: updatedIntegration?.projectId,
+      id: newIntegration?.id,
+      projectId: projectId ?? null,
+      workspaceId: resolvedWorkspaceId,
       repositoryOwner,
       repositoryName,
       installationId,
-      isActive: updatedIntegration?.isActive,
-      createdAt: updatedIntegration?.createdAt,
-      updatedAt: updatedIntegration?.updatedAt,
+      isActive: newIntegration?.isActive,
+      createdAt: newIntegration?.createdAt,
+      updatedAt: newIntegration?.updatedAt,
     };
   }
 
   const [newIntegration] = await db
     .insert(integrationTable)
     .values({
-      projectId,
+      projectId: null,
+      workspaceId: resolvedWorkspaceId,
       type: "github",
       config: JSON.stringify(config),
       isActive: true,
@@ -122,7 +161,8 @@ async function createGithubIntegration({
 
   return {
     id: newIntegration?.id,
-    projectId: newIntegration?.projectId,
+    projectId: projectId ?? null,
+    workspaceId: resolvedWorkspaceId,
     repositoryOwner,
     repositoryName,
     installationId,

@@ -3,6 +3,7 @@ import type { GitHubConfig } from "../config";
 import { createOrUpdateExternalLink } from "../services/link-manager";
 import {
   findAllIntegrationsByRepo,
+  findTaskByBranchInWorkspace,
   findTaskByNumber,
   isTaskInFinalState,
   updateTaskStatus,
@@ -61,23 +62,22 @@ export async function handlePush(payload: PushPayload) {
   );
 
   for (const integration of integrations) {
-    if (!integration.project) {
+    if (!integration.project && !integration.workspaceId) {
       continue;
     }
 
     const config = JSON.parse(integration.config) as GitHubConfig;
-    const projectSlug = integration.project.slug;
+    const projectSlug = integration.project?.slug ?? "";
     console.log(
       `[Push] Trying project: ${projectSlug}, pattern: ${config.branchPattern}`,
     );
 
-    const taskNumber = extractTaskNumberFromBranch(
-      branchName,
-      config,
-      projectSlug,
-    );
+    const taskNumber =
+      integration.projectId !== null
+        ? extractTaskNumberFromBranch(branchName, config, projectSlug)
+        : null;
 
-    if (!taskNumber) {
+    if (!taskNumber && !integration.workspaceId) {
       console.log(
         `[Push] Could not extract task number from branch: ${branchName} (pattern: ${config.branchPattern}, slug: ${projectSlug})`,
       );
@@ -85,14 +85,32 @@ export async function handlePush(payload: PushPayload) {
     }
 
     console.log(
-      `[Push] Extracted task number: ${taskNumber} for project ${projectSlug}`,
+      `[Push] Extracted task number: ${taskNumber ?? "workspace-lookup"} for project ${projectSlug || "workspace"}`,
     );
 
-    const task = await findTaskByNumber(integration.projectId, taskNumber);
+    let resolvedProjectId = integration.projectId;
+    let task =
+      integration.projectId !== null && taskNumber !== null
+        ? await findTaskByNumber(integration.projectId, taskNumber)
+        : null;
+
+    if (!task && integration.workspaceId) {
+      const matched = await findTaskByBranchInWorkspace(
+        integration.workspaceId,
+        branchName,
+        config,
+        extractTaskNumberFromBranch,
+      );
+
+      if (matched) {
+        task = matched.task;
+        resolvedProjectId = matched.projectId;
+      }
+    }
 
     if (!task) {
       console.log(
-        `[Push] Task #${taskNumber} not found in project ${integration.projectId}`,
+        `[Push] Task #${taskNumber} not found in project/workspace for integration ${integration.id}`,
       );
       continue;
     }
@@ -121,7 +139,7 @@ export async function handlePush(payload: PushPayload) {
     });
 
     const targetStatus = await resolveTargetStatus(
-      integration.projectId,
+      resolvedProjectId ?? task.projectId,
       "branch_push",
       config.statusTransitions?.onBranchPush || "in-progress",
     );

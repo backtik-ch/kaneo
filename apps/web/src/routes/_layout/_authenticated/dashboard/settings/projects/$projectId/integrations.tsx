@@ -22,6 +22,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import useGetProject from "@/hooks/queries/project/use-get-project";
 
 export const Route = createFileRoute(
   "/_layout/_authenticated/dashboard/settings/projects/$projectId/integrations",
@@ -32,6 +33,14 @@ export const Route = createFileRoute(
 function RouteComponent() {
   const { t } = useTranslation();
   const { projectId } = Route.useParams();
+  const activeWorkspaceId = Route.useRouteContext({
+    select: (context) => context.workspaceId,
+  });
+  const { data: project } = useGetProject({
+    id: projectId,
+    workspaceId: activeWorkspaceId,
+  });
+  const workspaceId = project?.workspaceId ?? activeWorkspaceId;
 
   return (
     <>
@@ -52,7 +61,10 @@ function RouteComponent() {
             subtitle={t("settings:projectIntegrations.githubSectionSubtitle")}
             title={t("settings:projectIntegrations.githubSectionTitle")}
           >
-            <GitHubIntegrationSettings projectId={projectId} />
+            <GitHubIntegrationSettings
+              projectId={projectId}
+              workspaceId={workspaceId}
+            />
           </IntegrationSection>
 
           <IntegrationSection

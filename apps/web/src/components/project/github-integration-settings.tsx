@@ -8,7 +8,7 @@ import {
   Import,
   Link,
   RefreshCw,
-  Unlink,
+  Trash2,
   XCircle,
 } from "lucide-react";
 import React from "react";
@@ -30,14 +30,14 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import type { VerifyGithubInstallationResponse } from "@/fetchers/github-integration/verify-github-installation";
-import {
-  useCreateGithubIntegration,
-  useDeleteGithubIntegration,
-  useVerifyGithubInstallation,
-} from "@/hooks/mutations/github-integration/use-create-github-integration";
+import { useVerifyGithubInstallation } from "@/hooks/mutations/github-integration/use-create-github-integration";
 import useImportGithubIssues from "@/hooks/mutations/github-integration/use-import-github-issues";
-import { useUpdateGithubIntegration } from "@/hooks/mutations/github-integration/use-update-github-integration";
-import useGetGithubIntegration from "@/hooks/queries/github-integration/use-get-github-integration";
+import {
+  useCreateWorkspaceGithubIntegration,
+  useDeleteWorkspaceGithubIntegration,
+  useUpdateWorkspaceGithubIntegration,
+} from "@/hooks/mutations/github-integration/use-workspace-github-integrations";
+import useListWorkspaceGithubIntegrations from "@/hooks/queries/github-integration/use-list-workspace-github-integrations";
 import { cn } from "@/lib/cn";
 import { toast } from "@/lib/toast";
 
@@ -48,10 +48,13 @@ type GithubIntegrationFormValues = {
 
 export function GitHubIntegrationSettings({
   projectId,
+  workspaceId,
 }: {
   projectId: string;
+  workspaceId: string;
 }) {
   const { t } = useTranslation();
+
   const githubIntegrationSchema = React.useMemo(
     () =>
       z.object({
@@ -73,42 +76,65 @@ export function GitHubIntegrationSettings({
     [t],
   );
 
-  const { data: integration, isLoading } = useGetGithubIntegration(projectId);
+  const { data: integrations = [], isLoading } =
+    useListWorkspaceGithubIntegrations(workspaceId);
   const { mutateAsync: createIntegration, isPending: isCreating } =
-    useCreateGithubIntegration();
+    useCreateWorkspaceGithubIntegration();
   const { mutateAsync: deleteIntegration, isPending: isDeleting } =
-    useDeleteGithubIntegration();
+    useDeleteWorkspaceGithubIntegration();
+  const { mutateAsync: updateIntegration, isPending: isUpdating } =
+    useUpdateWorkspaceGithubIntegration();
   const { mutateAsync: verifyInstallation, isPending: isVerifying } =
     useVerifyGithubInstallation();
   const { mutateAsync: importIssues, isPending: isImporting } =
     useImportGithubIssues();
-  const { mutateAsync: updateGithubSettings, isPending: isUpdatingSettings } =
-    useUpdateGithubIntegration();
 
-  const [verificationResult, setVerificationResult] =
-    React.useState<VerifyGithubInstallationResponse | null>(null);
   const [showRepositoryBrowser, setShowRepositoryBrowser] =
     React.useState(false);
+  const [verificationResult, setVerificationResult] =
+    React.useState<VerifyGithubInstallationResponse | null>(null);
+  const [selectedIntegrationId, setSelectedIntegrationId] = React.useState<
+    string | null
+  >(null);
+
+  React.useEffect(() => {
+    if (!selectedIntegrationId && integrations.length > 0) {
+      setSelectedIntegrationId(integrations[0]?.id ?? null);
+    }
+  }, [integrations, selectedIntegrationId]);
+
+  const selectedIntegration = React.useMemo(
+    () =>
+      integrations.find((it) => it.id === selectedIntegrationId) ??
+      integrations[0],
+    [integrations, selectedIntegrationId],
+  );
 
   const form = useForm<GithubIntegrationFormValues>({
     resolver: standardSchemaResolver(githubIntegrationSchema),
     defaultValues: {
-      repositoryOwner: integration?.repositoryOwner || "",
-      repositoryName: integration?.repositoryName || "",
+      repositoryOwner: "",
+      repositoryName: "",
     },
   });
 
-  React.useEffect(() => {
-    if (integration) {
-      form.reset({
-        repositoryOwner: integration.repositoryOwner,
-        repositoryName: integration.repositoryName,
-      });
-    }
-  }, [integration, form]);
-
-  const repositoryOwner = form.watch("repositoryOwner");
-  const repositoryName = form.watch("repositoryName");
+  const handleRepositorySelect = (repository: {
+    owner: string;
+    name: string;
+  }) => {
+    form.setValue("repositoryOwner", repository.owner, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    });
+    form.setValue("repositoryName", repository.name, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    });
+    setShowRepositoryBrowser(false);
+    setVerificationResult(null);
+  };
 
   const handleVerifyInstallation = React.useCallback(
     async (data: GithubIntegrationFormValues, showToast = true) => {
@@ -145,45 +171,13 @@ export function GitHubIntegrationSettings({
     [verifyInstallation, t],
   );
 
-  React.useEffect(() => {
-    if (repositoryOwner && repositoryName && form.formState.isValid) {
-      handleVerifyInstallation({ repositoryOwner, repositoryName }, false);
-    }
-  }, [
-    repositoryOwner,
-    repositoryName,
-    form.formState.isValid,
-    handleVerifyInstallation,
-  ]);
-
-  const handleRepositorySelect = (repository: {
-    owner: string;
-    name: string;
-  }) => {
-    form.setValue("repositoryOwner", repository.owner, {
-      shouldValidate: true,
-      shouldDirty: true,
-      shouldTouch: true,
-    });
-    form.setValue("repositoryName", repository.name, {
-      shouldValidate: true,
-      shouldDirty: true,
-      shouldTouch: true,
-    });
-    setShowRepositoryBrowser(false);
-
-    setVerificationResult(null);
-  };
-
   const onSubmit = async (data: GithubIntegrationFormValues) => {
     try {
       const verification = await verifyInstallation(data);
-
       if (!verification.isInstalled) {
         toast.error(t("settings:githubIntegration.toast.installAppFirst"));
         return;
       }
-
       if (!verification.hasRequiredPermissions) {
         toast.error(
           t("settings:githubIntegration.toast.missingPermsDetail", {
@@ -193,11 +187,10 @@ export function GitHubIntegrationSettings({
         return;
       }
 
-      await createIntegration({
-        projectId,
-        data,
-      });
+      await createIntegration({ workspaceId, data });
       toast.success(t("settings:githubIntegration.toast.updated"));
+      form.reset({ repositoryOwner: "", repositoryName: "" });
+      setVerificationResult(null);
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -207,12 +200,13 @@ export function GitHubIntegrationSettings({
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (integrationId: string) => {
     try {
-      await deleteIntegration(projectId);
-      form.reset({ repositoryOwner: "", repositoryName: "" });
-      setVerificationResult(null);
+      await deleteIntegration({ workspaceId, integrationId });
       toast.success(t("settings:githubIntegration.toast.removed"));
+      if (selectedIntegrationId === integrationId) {
+        setSelectedIntegrationId(null);
+      }
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -223,8 +217,13 @@ export function GitHubIntegrationSettings({
   };
 
   const handleImportIssues = async () => {
+    if (!selectedIntegration) {
+      toast.error("Select a repository first");
+      return;
+    }
+
     try {
-      await importIssues({ projectId });
+      await importIssues({ projectId, integrationId: selectedIntegration.id });
       toast.success(t("settings:githubIntegration.toast.issuesImported"));
     } catch (error) {
       toast.error(
@@ -235,32 +234,12 @@ export function GitHubIntegrationSettings({
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="space-y-4 border border-border rounded-md p-4 bg-sidebar">
-          <div className="space-y-4">
-            <div className="h-4 bg-muted rounded animate-pulse w-40" />
-            <div className="h-4 bg-muted rounded animate-pulse w-full" />
-            <div className="h-10 bg-muted rounded animate-pulse w-full" />
-          </div>
-        </div>
-        <div className="space-y-4 border border-border rounded-md p-4 bg-sidebar">
-          <div className="space-y-4">
-            <div className="h-4 bg-muted rounded animate-pulse w-40" />
-            <div className="h-10 bg-muted rounded animate-pulse w-full" />
-            <div className="h-10 bg-muted rounded animate-pulse w-full" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const isConnected = integrations.length > 0;
+  const canImport = Boolean(isConnected && selectedIntegration?.isActive);
 
-  const isConnected = !!integration && integration.isActive;
-  const canImport =
-    isConnected &&
-    verificationResult?.isInstalled &&
-    verificationResult?.hasRequiredPermissions;
+  if (isLoading) {
+    return <div className="h-20 animate-pulse rounded-md bg-muted" />;
+  }
 
   return (
     <div className="space-y-4">
@@ -270,61 +249,100 @@ export function GitHubIntegrationSettings({
             <p className="text-sm font-medium">
               {t("settings:githubIntegration.connectionStatus")}
             </p>
-            {isConnected ? (
-              <p className="text-xs text-muted-foreground">
-                {t("settings:githubIntegration.connectedActive")}
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                {t("settings:githubIntegration.notConnectedHint")}
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground">
+              {isConnected
+                ? `${integrations.length} repository(ies) connected for this workspace`
+                : t("settings:githubIntegration.notConnectedHint")}
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            {isConnected ? (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="gap-1">
-                  <CheckCircle className="w-3 h-3" />
-                  {t("settings:githubIntegration.badgeConnected")}
-                </Badge>
-              </div>
-            ) : (
-              <Badge variant="outline" className="gap-1">
-                <XCircle className="w-3 h-3" />
-                {t("settings:githubIntegration.badgeNotConnected")}
-              </Badge>
-            )}
-          </div>
+          {isConnected ? (
+            <Badge variant="secondary" className="gap-1">
+              <CheckCircle className="w-3 h-3" />
+              {t("settings:githubIntegration.badgeConnected")}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="gap-1">
+              <XCircle className="w-3 h-3" />
+              {t("settings:githubIntegration.badgeNotConnected")}
+            </Badge>
+          )}
         </div>
 
-        {isConnected && (
+        {integrations.length > 0 && (
           <>
             <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium">
-                  {t("settings:githubIntegration.repository")}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t("settings:githubIntegration.repositoryHint")}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Github className="w-4 h-4" />
-                <span className="font-medium">
-                  {integration.repositoryOwner}/{integration.repositoryName}
-                </span>
-                <a
-                  href={`https://github.com/${integration.repositoryOwner}/${integration.repositoryName}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:text-primary/80 transition-colors"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            </div>
+            <div className="space-y-2">
+              {integrations.map((integration) => {
+                const fullName = `${integration.repositoryOwner}/${integration.repositoryName}`;
+                const selected = integration.id === selectedIntegration?.id;
 
+                return (
+                  <div
+                    key={integration.id}
+                    className={cn(
+                      "flex items-center justify-between rounded-md border p-3",
+                      selected ? "border-primary bg-accent" : "border-border",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      className="flex min-w-0 items-center gap-2 text-left"
+                      onClick={() => setSelectedIntegrationId(integration.id)}
+                    >
+                      <Github className="size-4" />
+                      <span className="truncate font-medium">{fullName}</span>
+                      <a
+                        href={`https://github.com/${fullName}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <ExternalLink className="size-3" />
+                      </a>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={integration.isActive ?? false}
+                        onCheckedChange={async (checked) => {
+                          try {
+                            await updateIntegration({
+                              workspaceId,
+                              integrationId: integration.id,
+                              json: { isActive: checked },
+                            });
+                          } catch (error) {
+                            toast.error(
+                              error instanceof Error
+                                ? error.message
+                                : "Update failed",
+                            );
+                          }
+                        }}
+                        disabled={isUpdating}
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDelete(integration.id)}
+                        disabled={isDeleting}
+                        className="gap-2"
+                      >
+                        <Trash2 className="size-3" />
+                        {t("settings:githubIntegration.disconnect")}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {selectedIntegration && (
+          <>
             <Separator />
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0 flex-1 space-y-0.5">
@@ -336,20 +354,16 @@ export function GitHubIntegrationSettings({
                 </p>
               </div>
               <Switch
-                checked={integration.commentTaskLinkOnGitHubIssue !== false}
+                checked={
+                  selectedIntegration.commentTaskLinkOnGitHubIssue !== false
+                }
                 onCheckedChange={async (checked) => {
                   try {
-                    await updateGithubSettings({
-                      projectId,
+                    await updateIntegration({
+                      workspaceId,
+                      integrationId: selectedIntegration.id,
                       json: { commentTaskLinkOnGitHubIssue: checked },
                     });
-                    toast.success(
-                      checked
-                        ? t("settings:githubIntegration.toast.commentOnEnabled")
-                        : t(
-                            "settings:githubIntegration.toast.commentOnDisabled",
-                          ),
-                    );
                   } catch (error) {
                     toast.error(
                       error instanceof Error
@@ -360,53 +374,13 @@ export function GitHubIntegrationSettings({
                     );
                   }
                 }}
-                disabled={isUpdatingSettings}
+                disabled={isUpdating}
               />
             </div>
           </>
         )}
-
-        {isConnected && verificationResult && (
-          <>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium">
-                  {t("settings:githubIntegration.appStatusTitle")}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t("settings:githubIntegration.appStatusHint")}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                {verificationResult.isInstalled &&
-                verificationResult.hasRequiredPermissions ? (
-                  <>
-                    <CheckCircle className="h-4 w-4 text-success-foreground" />
-                    <span className="font-medium text-success-foreground">
-                      {t("settings:githubIntegration.statusProperlyConfigured")}
-                    </span>
-                  </>
-                ) : verificationResult.isInstalled ? (
-                  <>
-                    <AlertTriangle className="h-4 w-4 text-warning-foreground" />
-                    <span className="font-medium text-warning-foreground">
-                      {t("settings:githubIntegration.statusMissingPermissions")}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-4 w-4 text-destructive-foreground" />
-                    <span className="font-medium text-destructive-foreground">
-                      {t("settings:githubIntegration.statusNotInstalled")}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-          </>
-        )}
       </div>
+
       <div className="space-y-4 border border-border rounded-md p-4 bg-sidebar">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -415,134 +389,87 @@ export function GitHubIntegrationSettings({
               name="repositoryOwner"
               render={({ field }) => (
                 <FormItem>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-sm font-medium">
-                        {t("settings:githubIntegration.ownerLabel")}
-                      </FormLabel>
-                      <p className="text-xs text-muted-foreground">
-                        {t("settings:githubIntegration.ownerHint")}
-                      </p>
-                    </div>
-                    <FormControl>
-                      <Input
-                        className="w-64"
-                        placeholder={t(
-                          "settings:githubIntegration.ownerPlaceholder",
-                        )}
-                        {...field}
-                        disabled={isCreating || isDeleting}
-                      />
-                    </FormControl>
-                  </div>
+                  <FormLabel>
+                    {t("settings:githubIntegration.ownerLabel")}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={t(
+                        "settings:githubIntegration.ownerPlaceholder",
+                      )}
+                      {...field}
+                      disabled={isCreating}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            <Separator />
 
             <FormField
               control={form.control}
               name="repositoryName"
               render={({ field }) => (
                 <FormItem>
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-sm font-medium">
-                        {t("settings:githubIntegration.repoNameLabel")}
-                      </FormLabel>
-                      <p className="text-xs text-muted-foreground">
-                        {t("settings:githubIntegration.repoNameHint")}
-                      </p>
-                    </div>
-                    <FormControl>
-                      <Input
-                        className="w-64"
-                        placeholder={t(
-                          "settings:githubIntegration.repoNamePlaceholder",
-                        )}
-                        {...field}
-                        disabled={isCreating || isDeleting}
-                      />
-                    </FormControl>
-                  </div>
+                  <FormLabel>
+                    {t("settings:githubIntegration.repoNameLabel")}
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={t(
+                        "settings:githubIntegration.repoNamePlaceholder",
+                      )}
+                      {...field}
+                      disabled={isCreating}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <Separator />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowRepositoryBrowser(true)}
+                className="gap-2"
+              >
+                <GitBranch className="size-3" />
+                {t("settings:githubIntegration.browse")}
+              </Button>
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium">
-                  {t("settings:githubIntegration.actionsTitle")}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t("settings:githubIntegration.actionsHint")}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowRepositoryBrowser(true)}
-                  className="gap-2"
-                >
-                  <GitBranch className="size-3" />
-                  {t("settings:githubIntegration.browse")}
-                </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleVerifyInstallation(form.getValues())}
+                disabled={isVerifying || !form.formState.isValid}
+                className="gap-2"
+              >
+                <RefreshCw
+                  className={cn("size-3", isVerifying && "animate-spin")}
+                />
+                {t("settings:githubIntegration.verify")}
+              </Button>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleVerifyInstallation(form.getValues())}
-                  disabled={isVerifying || !form.formState.isValid}
-                  className="gap-2"
-                >
-                  <RefreshCw
-                    className={cn("size-3", isVerifying && "animate-spin")}
-                  />
-                  {t("settings:githubIntegration.verify")}
-                </Button>
-
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={
-                    isCreating ||
-                    isDeleting ||
-                    !form.formState.isValid ||
-                    (verificationResult
-                      ? !verificationResult.isInstalled ||
-                        !verificationResult.hasRequiredPermissions
-                      : false)
-                  }
-                  className="gap-2"
-                >
-                  <Link className="size-3" />
-                  {isConnected
-                    ? t("settings:githubIntegration.update")
-                    : t("settings:githubIntegration.connect")}
-                </Button>
-
-                {isConnected && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleDelete}
-                    disabled={isCreating || isDeleting}
-                    className="gap-2"
-                  >
-                    <Unlink className="size-3" />
-                    {t("settings:githubIntegration.disconnect")}
-                  </Button>
-                )}
-              </div>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={
+                  isCreating ||
+                  !form.formState.isValid ||
+                  (verificationResult
+                    ? !verificationResult.isInstalled ||
+                      !verificationResult.hasRequiredPermissions
+                    : false)
+                }
+                className="gap-2"
+              >
+                <Link className="size-3" />
+                Add repository to workspace
+              </Button>
             </div>
           </form>
         </Form>
@@ -550,89 +477,29 @@ export function GitHubIntegrationSettings({
         {verificationResult && (
           <>
             <Separator />
-            <div className="space-y-2">
-              <div
-                className={cn(
-                  "flex items-start gap-3 p-3 border rounded-md text-sm",
-                  verificationResult.isInstalled &&
-                    verificationResult.hasRequiredPermissions
-                    ? "border-success/25 bg-success/10"
-                    : verificationResult.isInstalled
-                      ? "border-warning/25 bg-warning/10"
-                      : verificationResult.repositoryExists
-                        ? "border-warning/25 bg-warning/10"
-                        : "border-destructive/25 bg-destructive/10",
-                )}
-              >
-                {verificationResult.isInstalled &&
-                verificationResult.hasRequiredPermissions ? (
-                  <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-success-foreground" />
-                ) : verificationResult.isInstalled ||
-                  verificationResult.repositoryExists ? (
-                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning-foreground" />
-                ) : (
-                  <XCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-destructive-foreground" />
-                )}
-                <div className="flex-1">
-                  <p className="font-medium">{verificationResult.message}</p>
-
-                  {verificationResult.isInstalled &&
-                    !verificationResult.hasRequiredPermissions &&
-                    verificationResult.missingPermissions && (
-                      <div className="mt-2">
-                        <p className="text-xs mb-2">
-                          {t(
-                            "settings:githubIntegration.missingPermissionsLabel",
-                          )}{" "}
-                          <strong>
-                            {verificationResult.missingPermissions.join(", ")}
-                          </strong>
-                        </p>
-                        <div className="flex gap-2">
-                          {verificationResult.settingsUrl && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                window.open(
-                                  verificationResult.settingsUrl,
-                                  "_blank",
-                                )
-                              }
-                              className="gap-2"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                              {t(
-                                "settings:githubIntegration.updatePermissions",
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                  {!verificationResult.isInstalled &&
-                    verificationResult.repositoryExists && (
-                      <div className="mt-2">
-                        {verificationResult.installationUrl && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              window.open(
-                                verificationResult.installationUrl,
-                                "_blank",
-                              )
-                            }
-                            className="gap-2"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            {t("settings:githubIntegration.installGithubApp")}
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                </div>
+            <div
+              className={cn(
+                "flex items-start gap-3 p-3 border rounded-md text-sm",
+                verificationResult.isInstalled &&
+                  verificationResult.hasRequiredPermissions
+                  ? "border-success/25 bg-success/10"
+                  : verificationResult.isInstalled ||
+                      verificationResult.repositoryExists
+                    ? "border-warning/25 bg-warning/10"
+                    : "border-destructive/25 bg-destructive/10",
+              )}
+            >
+              {verificationResult.isInstalled &&
+              verificationResult.hasRequiredPermissions ? (
+                <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-success-foreground" />
+              ) : verificationResult.isInstalled ||
+                verificationResult.repositoryExists ? (
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning-foreground" />
+              ) : (
+                <XCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-destructive-foreground" />
+              )}
+              <div className="flex-1">
+                <p className="font-medium">{verificationResult.message}</p>
               </div>
             </div>
           </>
@@ -641,7 +508,7 @@ export function GitHubIntegrationSettings({
 
       {isConnected && (
         <div className="space-y-4 border border-border rounded-md p-4 bg-sidebar">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5">
               <p className="text-sm font-medium">
                 {t("settings:githubIntegration.importSectionTitle")}
@@ -649,34 +516,30 @@ export function GitHubIntegrationSettings({
               <p className="text-xs text-muted-foreground">
                 {t("settings:githubIntegration.importSectionHint")}
               </p>
+              {selectedIntegration && (
+                <p className="text-xs text-muted-foreground">
+                  Import source: {selectedIntegration.repositoryOwner}/
+                  {selectedIntegration.repositoryName}
+                </p>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={handleImportIssues}
-                disabled={isImporting || !canImport}
-                className="gap-2"
-                size="sm"
-                variant="outline"
-              >
-                {isImporting ? (
-                  <RefreshCw className="size-3 animate-spin" />
-                ) : (
-                  <Import className="size-3" />
-                )}
-                {isImporting
-                  ? t("settings:githubIntegration.importing")
-                  : t("settings:githubIntegration.importIssues")}
-              </Button>
-            </div>
+            <Button
+              onClick={handleImportIssues}
+              disabled={isImporting || !canImport}
+              className="gap-2"
+              size="sm"
+              variant="outline"
+            >
+              {isImporting ? (
+                <RefreshCw className="size-3 animate-spin" />
+              ) : (
+                <Import className="size-3" />
+              )}
+              {isImporting
+                ? t("settings:githubIntegration.importing")
+                : t("settings:githubIntegration.importIssues")}
+            </Button>
           </div>
-          {!canImport && (
-            <>
-              <Separator />
-              <p className="text-xs text-muted-foreground">
-                {t("settings:githubIntegration.importDisabledHint")}
-              </p>
-            </>
-          )}
         </div>
       )}
 
@@ -685,8 +548,8 @@ export function GitHubIntegrationSettings({
         onOpenChange={setShowRepositoryBrowser}
         onSelectRepository={handleRepositorySelect}
         selectedRepository={
-          repositoryOwner && repositoryName
-            ? `${repositoryOwner}/${repositoryName}`
+          form.getValues("repositoryOwner") && form.getValues("repositoryName")
+            ? `${form.getValues("repositoryOwner")}/${form.getValues("repositoryName")}`
             : undefined
         }
       />

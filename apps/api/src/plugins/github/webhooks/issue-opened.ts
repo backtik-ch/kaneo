@@ -49,6 +49,10 @@ export async function handleIssueOpened(payload: IssueOpenedPayload) {
   }
 
   for (const integration of integrations) {
+    if (!integration.projectId) {
+      continue;
+    }
+
     const config = JSON.parse(integration.config) as GitHubConfig;
     const projectId = integration.projectId;
 

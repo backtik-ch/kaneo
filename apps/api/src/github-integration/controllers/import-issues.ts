@@ -59,7 +59,10 @@ type GitHubPullRequest = {
   user: { login: string; avatar_url: string } | null;
 };
 
-export async function importIssues(projectId: string): Promise<ImportResult> {
+export async function importIssues(
+  projectId: string,
+  integrationId?: string,
+): Promise<ImportResult> {
   const errors: string[] = [];
   let imported = 0;
   let updated = 0;
@@ -73,12 +76,21 @@ export async function importIssues(projectId: string): Promise<ImportResult> {
     throw new HTTPException(404, { message: "Project not found" });
   }
 
-  const integration = await db.query.integrationTable.findFirst({
-    where: and(
-      eq(integrationTable.projectId, projectId),
-      eq(integrationTable.type, "github"),
-    ),
-  });
+  const integration = integrationId
+    ? await db.query.integrationTable.findFirst({
+        where: and(
+          eq(integrationTable.id, integrationId),
+          eq(integrationTable.workspaceId, project.workspaceId),
+          eq(integrationTable.type, "github"),
+        ),
+      })
+    : await db.query.integrationTable.findFirst({
+        where: and(
+          eq(integrationTable.workspaceId, project.workspaceId),
+          eq(integrationTable.type, "github"),
+        ),
+        orderBy: (table, { asc }) => [asc(table.createdAt)],
+      });
 
   if (!integration) {
     throw new HTTPException(404, { message: "GitHub integration not found" });

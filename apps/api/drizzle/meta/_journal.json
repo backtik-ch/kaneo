@@ -211,6 +211,13 @@
 			"when": 1778000000000,
 			"tag": "0029_fk_supporting_indexes",
 			"breakpoints": true
+		},
+		{
+			"idx": 30,
+			"version": "7",
+			"when": 1778100000000,
+			"tag": "0030_workspace_github_integration",
+			"breakpoints": true
 		}
 	]
 }

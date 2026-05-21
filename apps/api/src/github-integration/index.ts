@@ -15,8 +15,10 @@ import { githubIntegrationSchema } from "../schemas";
 import { validateWorkspaceAccess } from "../utils/validate-workspace-access";
 import { workspaceAccess } from "../utils/workspace-access-middleware";
 import createGithubIntegration from "./controllers/create-github-integration";
-import deleteGithubIntegration from "./controllers/delete-github-integration";
-import getGithubIntegration from "./controllers/get-github-integration";
+import { deleteGithubIntegrationById } from "./controllers/delete-github-integration";
+import getGithubIntegration, {
+  listGithubIntegrationsByWorkspace,
+} from "./controllers/get-github-integration";
 import { importIssues } from "./controllers/import-issues";
 import listUserRepositories from "./controllers/list-user-repositories";
 import verifyGithubInstallation from "./controllers/verify-github-installation";
@@ -58,6 +60,119 @@ const githubIntegration = new Hono<{
     };
   };
 }>()
+  .get(
+    "/workspace/:workspaceId",
+    validator("param", v.object({ workspaceId: v.string() })),
+    workspaceAccess.fromParam("workspaceId"),
+    async (c) => {
+      const { workspaceId } = c.req.valid("param");
+      const integrations = await listGithubIntegrationsByWorkspace(workspaceId);
+      return c.json(integrations);
+    },
+  )
+  .post(
+    "/workspace/:workspaceId",
+    validator("param", v.object({ workspaceId: v.string() })),
+    validator(
+      "json",
+      v.object({
+        repositoryOwner: v.pipe(v.string(), v.minLength(1)),
+        repositoryName: v.pipe(v.string(), v.minLength(1)),
+      }),
+    ),
+    workspaceAccess.fromParam("workspaceId"),
+    async (c) => {
+      const { workspaceId } = c.req.valid("param");
+      const { repositoryOwner, repositoryName } = c.req.valid("json");
+      const integration = await createGithubIntegration({
+        workspaceId,
+        repositoryOwner,
+        repositoryName,
+      });
+      return c.json(integration);
+    },
+  )
+  .patch(
+    "/workspace/:workspaceId/:integrationId",
+    validator(
+      "param",
+      v.object({ workspaceId: v.string(), integrationId: v.string() }),
+    ),
+    validator(
+      "json",
+      v.object({
+        isActive: v.optional(v.boolean()),
+        commentTaskLinkOnGitHubIssue: v.optional(v.boolean()),
+      }),
+    ),
+    workspaceAccess.fromParam("workspaceId"),
+    async (c) => {
+      const { workspaceId, integrationId } = c.req.valid("param");
+      const body = c.req.valid("json");
+
+      const row = await db.query.integrationTable.findFirst({
+        where: and(
+          eq(integrationTable.id, integrationId),
+          eq(integrationTable.workspaceId, workspaceId),
+          eq(integrationTable.type, "github"),
+        ),
+      });
+
+      if (!row) {
+        return c.json({ error: "Integration not found" }, 404);
+      }
+
+      let config: GitHubConfig;
+      try {
+        config = JSON.parse(row.config) as GitHubConfig;
+      } catch {
+        throw new HTTPException(500, { message: "Invalid integration config" });
+      }
+
+      if (body.commentTaskLinkOnGitHubIssue !== undefined) {
+        config = {
+          ...config,
+          commentTaskLinkOnGitHubIssue: body.commentTaskLinkOnGitHubIssue,
+        };
+      }
+
+      const validation = await validateGitHubConfig(config);
+      if (!validation.valid) {
+        throw new HTTPException(400, {
+          message: validation.errors?.join(", ") ?? "Invalid config",
+        });
+      }
+
+      await db
+        .update(integrationTable)
+        .set({
+          config: JSON.stringify(config),
+          isActive:
+            body.isActive !== undefined
+              ? body.isActive
+              : (row.isActive ?? true),
+          updatedAt: new Date(),
+        })
+        .where(eq(integrationTable.id, integrationId));
+
+      const integrations = await listGithubIntegrationsByWorkspace(workspaceId);
+      const updated = integrations.find((i) => i.id === integrationId) ?? null;
+      return c.json(updated, 200);
+    },
+  )
+  .delete(
+    "/workspace/:workspaceId/:integrationId",
+    validator(
+      "param",
+      v.object({ workspaceId: v.string(), integrationId: v.string() }),
+    ),
+    workspaceAccess.fromParam("workspaceId"),
+    async (c) => {
+      const { integrationId } = c.req.valid("param");
+      const result = await deleteGithubIntegrationById(integrationId);
+      return c.json(result);
+    },
+  )
   .get(
     "/app-info",
     describeRoute({
@@ -230,11 +345,14 @@ const githubIntegration = new Hono<{
       const { projectId } = c.req.valid("param");
       const body = c.req.valid("json");
 
+      const integration = await getGithubIntegration(projectId);
+
+      if (!integration) {
+        return c.json({ error: "Integration not found" }, 404);
+      }
+
       const row = await db.query.integrationTable.findFirst({
-        where: and(
-          eq(integrationTable.projectId, projectId),
-          eq(integrationTable.type, "github"),
-        ),
+        where: eq(integrationTable.id, integration.id),
       });
 
       if (!row) {
@@ -272,12 +390,7 @@ const githubIntegration = new Hono<{
               : (row.isActive ?? true),
           updatedAt: new Date(),
         })
-        .where(
-          and(
-            eq(integrationTable.projectId, projectId),
-            eq(integrationTable.type, "github"),
-          ),
-        );
+        .where(eq(integrationTable.id, row.id));
 
       const updated = await getGithubIntegration(projectId);
       return c.json(updated, 200);
@@ -302,7 +415,11 @@ const githubIntegration = new Hono<{
     workspaceAccess.fromProject("projectId"),
     async (c) => {
       const { projectId } = c.req.valid("param");
-      const result = await deleteGithubIntegration(projectId);
+      const integration = await getGithubIntegration(projectId);
+      if (!integration) {
+        return c.json({ error: "Integration not found" }, 404);
+      }
+      const result = await deleteGithubIntegrationById(integration.id);
       return c.json(result);
     },
   )
@@ -325,6 +442,7 @@ const githubIntegration = new Hono<{
       "json",
       v.object({
         projectId: v.string(),
+        integrationId: v.optional(v.string()),
       }),
     ),
     async (c, next) => {
@@ -354,8 +472,8 @@ const githubIntegration = new Hono<{
       return next();
     },
     async (c) => {
-      const { projectId } = c.req.valid("json");
-      const result = await importIssues(projectId);
+      const { projectId, integrationId } = c.req.valid("json");
+      const result = await importIssues(projectId, integrationId);
       return c.json(result);
     },
   );

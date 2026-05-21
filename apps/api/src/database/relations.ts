@@ -75,6 +75,7 @@ export const workspaceTableRelations = relations(
     projects: many(projectTable),
     assets: many(assetTable),
     invitations: many(invitationTable),
+    integrations: many(integrationTable),
     notificationWorkspaceRules: many(userNotificationWorkspaceRuleTable),
   }),
 );
@@ -326,6 +327,10 @@ export const integrationTableRelations = relations(
     project: one(projectTable, {
       fields: [integrationTable.projectId],
       references: [projectTable.id],
+    }),
+    workspace: one(workspaceTable, {
+      fields: [integrationTable.workspaceId],
+      references: [workspaceTable.id],
     }),
     externalLinks: many(externalLinkTable),
   }),

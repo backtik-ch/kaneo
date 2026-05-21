@@ -4,6 +4,7 @@ import db from "../../../database";
 import {
   columnTable,
   integrationTable,
+  projectTable,
   taskTable,
 } from "../../../database/schema";
 
@@ -141,4 +142,42 @@ export async function findAllIntegrationsByRepo(owner: string, repo: string) {
       return false;
     }
   });
+}
+
+export async function findTaskByBranchInWorkspace(
+  workspaceId: string,
+  branchName: string,
+  config: import("../config").GitHubConfig,
+  extractTaskNumberFromBranch: (
+    branchName: string,
+    cfg: import("../config").GitHubConfig,
+    projectSlug: string,
+  ) => number | null,
+) {
+  const projects = await db.query.projectTable.findMany({
+    where: eq(projectTable.workspaceId, workspaceId),
+  });
+
+  for (const project of projects) {
+    const taskNumber = extractTaskNumberFromBranch(
+      branchName,
+      config,
+      project.slug,
+    );
+    if (!taskNumber) {
+      continue;
+    }
+
+    const task = await findTaskByNumber(project.id, taskNumber);
+    if (task) {
+      return {
+        task,
+        projectId: project.id,
+        projectSlug: project.slug,
+        taskNumber,
+      };
+    }
+  }
+
+  return null;
 }

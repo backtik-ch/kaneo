@@ -14,36 +14,28 @@ services:
       timeout: 5s
       retries: 5
 
-  api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+  kaneo:
+    image: ghcr.io/backtik-ch/kaneo:latest
     ports:
-      - "1337:1337"
+      - "5173:5173"
     env_file:
       - .env.local
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5173/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
 
 #  Optional
 #  redis:
 #    image: valkey/valkey
 #    ports:
 #      - "6379:6379"
-
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-    ports:
-      - "5173:5173"
-    env_file:
-      - .env.local
-    depends_on:
-      - api
-    restart: unless-stopped
 
 volumes:
   postgres_data:
