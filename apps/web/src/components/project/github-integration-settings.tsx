@@ -44,8 +44,11 @@ import {
   useDeleteWorkspaceGithubIntegration,
   useUpdateWorkspaceGithubIntegration,
 } from "@/hooks/mutations/github-integration/use-workspace-github-integrations";
+import { useUpsertWorkflowRule } from "@/hooks/mutations/workflow-rule/use-upsert-workflow-rule";
+import { useGetColumns } from "@/hooks/queries/column/use-get-columns";
 import useListWorkspaceGithubIntegrations from "@/hooks/queries/github-integration/use-list-workspace-github-integrations";
 import useGetProjects from "@/hooks/queries/project/use-get-projects";
+import { useGetWorkflowRules } from "@/hooks/queries/workflow-rule/use-get-workflow-rules";
 import { cn } from "@/lib/cn";
 import { toast } from "@/lib/toast";
 
@@ -54,6 +57,14 @@ type GithubIntegrationFormValues = {
   repositoryName: string;
   projectId: string;
 };
+
+const GITHUB_AUTOMATION_EVENTS = [
+  { value: "branch_push", label: "Push de branche" },
+  { value: "pr_opened", label: "PR Ouverte" },
+  { value: "pr_merged", label: "PR Fusionné" },
+  { value: "issue_opened", label: "Problème Ouvert" },
+  { value: "issue_closed", label: "Problème Fermé" },
+] as const;
 
 export function GitHubIntegrationSettings({
   projectId,
@@ -120,6 +131,15 @@ export function GitHubIntegrationSettings({
       integrations[0],
     [integrations, selectedIntegrationId],
   );
+  const selectedIntegrationProjectId = selectedIntegration?.projectId ?? "";
+  const {
+    data: automationColumns = [],
+    isLoading: isAutomationColumnsLoading,
+  } = useGetColumns(selectedIntegrationProjectId);
+  const { data: workflowRules = [], isLoading: isWorkflowRulesLoading } =
+    useGetWorkflowRules(selectedIntegrationProjectId);
+  const { mutateAsync: upsertWorkflowRule, isPending: isUpdatingWorkflowRule } =
+    useUpsertWorkflowRule();
 
   const form = useForm<GithubIntegrationFormValues>({
     resolver: standardSchemaResolver(githubIntegrationSchema),
@@ -605,6 +625,99 @@ export function GitHubIntegrationSettings({
 
       {isConnected && (
         <div className="space-y-4 rounded-md border border-border bg-sidebar p-4">
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium">Règles d'automatisation</p>
+            <p className="text-xs text-muted-foreground">
+              Mappez les événements d'intégration aux colonnes. Lorsqu'un
+              événement se produit, la tâche liée se déplace vers la colonne
+              spécifiée.
+            </p>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-0.5">
+            <p className="text-sm font-medium">GitHub</p>
+            <p className="text-xs text-muted-foreground">
+              Lorsqu'un événement GitHub se produit, déplacez la tâche liée vers
+              une colonne.
+            </p>
+          </div>
+
+          {!selectedIntegration ? (
+            <p className="text-xs text-muted-foreground">
+              Sélectionnez un repository connecté pour configurer les règles.
+            </p>
+          ) : !selectedIntegration.projectId ? (
+            <p className="text-xs text-muted-foreground">
+              Liez d'abord ce repository à un projet pour configurer
+              l'automatisation.
+            </p>
+          ) : isAutomationColumnsLoading || isWorkflowRulesLoading ? (
+            <div className="h-16 animate-pulse rounded-md bg-muted" />
+          ) : automationColumns.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Aucune colonne disponible sur le projet lié.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {GITHUB_AUTOMATION_EVENTS.map((event) => {
+                const currentRule = workflowRules.find(
+                  (rule) =>
+                    rule.integrationType === "github" &&
+                    rule.eventType === event.value,
+                );
+
+                return (
+                  <div
+                    key={event.value}
+                    className="flex items-center justify-between gap-3 rounded-md border border-border bg-background p-3"
+                  >
+                    <span className="text-sm">{event.label}</span>
+                    <Select
+                      value={currentRule?.columnId ?? ""}
+                      onValueChange={async (columnId) => {
+                        if (!selectedIntegration.projectId || !columnId) return;
+                        try {
+                          await upsertWorkflowRule({
+                            projectId: selectedIntegration.projectId,
+                            data: {
+                              integrationType: "github",
+                              eventType: event.value,
+                              columnId,
+                            },
+                          });
+                          toast.success("Règle d'automatisation mise à jour");
+                        } catch (error) {
+                          toast.error(
+                            error instanceof Error
+                              ? error.message
+                              : "Impossible de mettre à jour la règle",
+                          );
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-52 text-xs">
+                        <SelectValue placeholder="Choisir une colonne" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {automationColumns.map((column) => (
+                          <SelectItem key={column.id} value={column.id}>
+                            {column.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {isConnected && (
+        <div className="space-y-4 rounded-md border border-border bg-sidebar p-4">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5">
               <p className="text-sm font-medium">
@@ -622,7 +735,7 @@ export function GitHubIntegrationSettings({
             </div>
             <Button
               onClick={handleImportIssues}
-              disabled={isImporting || !canImport}
+              disabled={isImporting || !canImport || isUpdatingWorkflowRule}
               className="gap-2"
               size="sm"
               variant="outline"
