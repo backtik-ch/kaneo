@@ -1,14 +1,22 @@
 import {
+  closestCorners,
   DndContext,
   type DragEndEvent,
   DragOverlay,
   type DragStartEvent,
-  PointerSensor,
-  useDraggable,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
   useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useQueries } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -158,17 +166,25 @@ function DraggableTaskCard({
     number: number | null;
   };
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({
-      id: task.id,
-      data: { taskId: task.id, projectId: task.projectId },
-    });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: task.id,
+    data: { taskId: task.id, projectId: task.projectId },
+  });
 
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-      }
-    : undefined;
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition:
+      transition || "transform 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 999 : "auto",
+  };
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
@@ -203,7 +219,12 @@ function DroppableBucket({
   const { setNodeRef, isOver } = useDroppable({ id: bucket });
 
   return (
-    <div ref={setNodeRef} className={isOver ? "rounded-md bg-accent/40" : ""}>
+    <div
+      ref={setNodeRef}
+      className={`min-h-[180px] rounded-md p-1 transition-colors ${
+        isOver ? "bg-accent/40" : "bg-transparent"
+      }`}
+    >
       {children}
     </div>
   );
@@ -358,7 +379,13 @@ function RouteComponent() {
   }, [filteredAndSortedTasks]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 10 },
+    }),
+    useSensor(KeyboardSensor),
   );
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -366,10 +393,20 @@ function RouteComponent() {
     const { active, over } = event;
     if (!over) return;
 
-    const targetBucket = over.id as StatusBucket;
     const activeTaskId = String(active.id);
     const task = filteredAndSortedTasks.find((t) => t.id === activeTaskId);
     if (!task) return;
+
+    const overId = String(over.id);
+    const targetBucket = (
+      BUCKETS.some((bucket) => bucket.id === overId)
+        ? overId
+        : (Object.entries(grouped).find(([, tasksInBucket]) =>
+            tasksInBucket.some((taskInBucket) => taskInBucket.id === overId),
+          )?.[0] ?? null)
+    ) as StatusBucket | null;
+
+    if (!targetBucket) return;
 
     const columns = columnsByProjectId.get(task.projectId) ?? [];
     const targetStatus = findColumnSlugForBucket(
@@ -562,6 +599,7 @@ function RouteComponent() {
             </Card>
           ) : viewMode === "kanban" ? (
             <DndContext
+              collisionDetection={closestCorners}
               sensors={sensors}
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
@@ -578,13 +616,18 @@ function RouteComponent() {
                         </Badge>
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="h-full">
                       <DroppableBucket bucket={bucket.id}>
-                        <div className="space-y-2">
-                          {grouped[bucket.id].map((task) => (
-                            <DraggableTaskCard key={task.id} task={task} />
-                          ))}
-                        </div>
+                        <SortableContext
+                          items={grouped[bucket.id].map((task) => task.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="space-y-2">
+                            {grouped[bucket.id].map((task) => (
+                              <DraggableTaskCard key={task.id} task={task} />
+                            ))}
+                          </div>
+                        </SortableContext>
                       </DroppableBucket>
                     </CardContent>
                   </Card>
