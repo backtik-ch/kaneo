@@ -64,6 +64,9 @@ export default function AiTaskImportButton() {
         queryClient.invalidateQueries({
           queryKey: ["project", plan.projectId],
         }),
+        queryClient.invalidateQueries({
+          queryKey: ["my-assigned-tasks"],
+        }),
       ]);
       toast.dismiss(loadingId);
       toast.success(`${result.results.successful} task(s) imported`);

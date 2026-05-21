@@ -17,10 +17,19 @@ import {
   UserRound,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import WorkspaceLayout from "@/components/common/workspace-layout";
 import PageTitle from "@/components/page-title";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import getColumns from "@/fetchers/column/get-columns";
 import { useUpdateTaskStatus } from "@/hooks/mutations/task/use-update-task-status";
@@ -401,187 +410,231 @@ function RouteComponent() {
   };
 
   return (
-    <div className="space-y-4">
+    <>
       <PageTitle title="Mes taches" />
-
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Tabs
-            value={viewMode}
-            onValueChange={(v) => setViewMode(v as ViewMode)}
-          >
-            <TabsList>
-              <TabsTrigger value="kanban">
-                <Layers className="mr-1 size-4" />
-                Kanban
-              </TabsTrigger>
-              <TabsTrigger value="list">
-                <ListIcon className="mr-1 size-4" />
-                Liste
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <label className="ml-2 inline-flex cursor-pointer items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={hideDone}
-              onChange={(e) => setHideDone(e.target.checked)}
-            />
-            Masquer terminees
-          </label>
-        </div>
-
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
-          <div className="relative md:col-span-2">
-            <Search className="pointer-events-none absolute top-2.5 left-2 size-4 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="pl-8"
-              placeholder="Rechercher une tache, projet, workspace..."
-            />
-          </div>
-
-          <select
-            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-            value={workspaceFilter}
-            onChange={(e) => setWorkspaceFilter(e.target.value)}
-          >
-            <option value="all">Tous les workspaces</option>
-            {workspaceOptions.map((workspace) => (
-              <option key={workspace} value={workspace}>
-                {workspace}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-            value={projectFilter}
-            onChange={(e) => setProjectFilter(e.target.value)}
-          >
-            <option value="all">Tous les projets</option>
-            {projectOptions.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value)}
-          >
-            <option value="all">Toutes les priorites</option>
-            <option value="urgent">Urgent</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-            <option value="no-priority">No priority</option>
-          </select>
-        </div>
-
-        <div className="flex justify-end">
-          <select
-            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-            value={sortMode}
-            onChange={(e) => setSortMode(e.target.value as SortMode)}
-          >
-            <option value="updated_desc">Tri: Derniere mise a jour</option>
-            <option value="due_asc">Tri: Echeance proche</option>
-            <option value="priority_desc">Tri: Priorite</option>
-          </select>
-        </div>
-
-        {isLoading ? (
-          <div className="text-sm text-muted-foreground">Chargement...</div>
-        ) : viewMode === "kanban" ? (
-          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-              {BUCKETS.map((bucket) => (
-                <Card key={bucket.id} className="min-h-[240px]">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center justify-between text-sm">
-                      <span>{bucket.label}</span>
-                      <Badge variant="secondary">
-                        {grouped[bucket.id].length}
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <DroppableBucket bucket={bucket.id}>
-                      <div className="space-y-2">
-                        {grouped[bucket.id].map((task) => (
-                          <DraggableTaskCard key={task.id} task={task} />
-                        ))}
-                      </div>
-                    </DroppableBucket>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </DndContext>
-        ) : (
+      <WorkspaceLayout title="Mes taches">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
           <Card>
-            <CardContent className="p-0">
-              <div className="grid grid-cols-12 border-b px-3 py-2 text-xs text-muted-foreground">
-                <div className="col-span-4">Tache</div>
-                <div className="col-span-2">Projet</div>
-                <div className="col-span-2">Workspace</div>
-                <div className="col-span-2">Statut</div>
-                <div className="col-span-1">Echeance</div>
-                <div className="col-span-1">Priorite</div>
-              </div>
-              {filteredAndSortedTasks.map((task) => (
-                <Link
-                  key={task.id}
-                  to="/dashboard/workspace/$workspaceId/project/$projectId/task/$taskId"
-                  params={{
-                    workspaceId: task.workspaceId,
-                    projectId: task.projectId,
-                    taskId: task.id,
-                  }}
-                  className="grid grid-cols-12 items-center border-b px-3 py-2 text-sm hover:bg-accent"
+            <CardContent className="space-y-4 pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Tabs
+                  value={viewMode}
+                  onValueChange={(v) => setViewMode(v as ViewMode)}
                 >
-                  <div className="col-span-4 min-w-0">
-                    <div className="truncate font-medium">{task.title}</div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {task.projectSlug.toUpperCase()}-{task.number ?? "?"}
-                    </div>
-                  </div>
-                  <div className="col-span-2 truncate">{task.projectName}</div>
-                  <div className="col-span-2 truncate">
-                    {task.workspaceName}
-                  </div>
-                  <div className="col-span-2">
-                    <Badge variant="outline">
-                      {task.columnName ?? task.status}
-                    </Badge>
-                  </div>
-                  <div className="col-span-1 text-xs text-muted-foreground">
-                    {task.dueDate ? (
-                      <span className="inline-flex items-center gap-1">
-                        <CalendarDays className="size-3" />
-                        {new Date(task.dueDate).toLocaleDateString()}
-                      </span>
-                    ) : (
-                      "-"
-                    )}
-                  </div>
-                  <div className="col-span-1 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
-                      <UserRound className="size-3" />
-                      {task.priority ?? "-"}
-                    </span>
-                  </div>
-                </Link>
-              ))}
+                  <TabsList>
+                    <TabsTrigger value="kanban">
+                      <Layers className="mr-1 size-4" />
+                      Kanban
+                    </TabsTrigger>
+                    <TabsTrigger value="list">
+                      <ListIcon className="mr-1 size-4" />
+                      Liste
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={hideDone ? "secondary" : "outline"}
+                    size="sm"
+                    onClick={() => setHideDone((value) => !value)}
+                  >
+                    {hideDone ? "Terminees masquees" : "Afficher terminees"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
+                <div className="relative md:col-span-2">
+                  <Search className="pointer-events-none absolute top-2.5 left-2 size-4 text-muted-foreground" />
+                  <Input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="pl-8"
+                    placeholder="Rechercher une tache, projet, workspace..."
+                  />
+                </div>
+
+                <Select
+                  value={workspaceFilter}
+                  onValueChange={(value) => setWorkspaceFilter(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tous les workspaces" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les workspaces</SelectItem>
+                    {workspaceOptions.map((workspace) => (
+                      <SelectItem key={workspace} value={workspace}>
+                        {workspace}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={projectFilter}
+                  onValueChange={(value) => setProjectFilter(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Tous les projets" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les projets</SelectItem>
+                    {projectOptions.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={priorityFilter}
+                  onValueChange={(value) => setPriorityFilter(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Toutes les priorites" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes les priorites</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="no-priority">No priority</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="text-muted-foreground text-xs">
+                  {filteredAndSortedTasks.length} tache(s)
+                </div>
+                <Select
+                  value={sortMode}
+                  onValueChange={(value) => setSortMode(value as SortMode)}
+                >
+                  <SelectTrigger className="w-full sm:w-64">
+                    <SelectValue placeholder="Tri" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="updated_desc">
+                      Tri: Derniere mise a jour
+                    </SelectItem>
+                    <SelectItem value="due_asc">
+                      Tri: Echeance proche
+                    </SelectItem>
+                    <SelectItem value="priority_desc">Tri: Priorite</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </CardContent>
           </Card>
-        )}
-      </div>
-    </div>
+
+          {isLoading ? (
+            <Card>
+              <CardContent className="py-8 text-sm text-muted-foreground">
+                Chargement...
+              </CardContent>
+            </Card>
+          ) : filteredAndSortedTasks.length === 0 ? (
+            <Card>
+              <CardContent className="py-10 text-center">
+                <p className="text-sm font-medium">Aucune tache a afficher</p>
+                <p className="mt-1 text-muted-foreground text-xs">
+                  Essaie de retirer des filtres ou d'afficher les terminees.
+                </p>
+              </CardContent>
+            </Card>
+          ) : viewMode === "kanban" ? (
+            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                {BUCKETS.map((bucket) => (
+                  <Card key={bucket.id} className="min-h-[240px]">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center justify-between text-sm">
+                        <span>{bucket.label}</span>
+                        <Badge variant="secondary">
+                          {grouped[bucket.id].length}
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <DroppableBucket bucket={bucket.id}>
+                        <div className="space-y-2">
+                          {grouped[bucket.id].map((task) => (
+                            <DraggableTaskCard key={task.id} task={task} />
+                          ))}
+                        </div>
+                      </DroppableBucket>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </DndContext>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <div className="grid grid-cols-12 border-b px-3 py-2 text-xs text-muted-foreground">
+                  <div className="col-span-4">Tache</div>
+                  <div className="col-span-2">Projet</div>
+                  <div className="col-span-2">Workspace</div>
+                  <div className="col-span-2">Statut</div>
+                  <div className="col-span-1">Echeance</div>
+                  <div className="col-span-1">Priorite</div>
+                </div>
+                {filteredAndSortedTasks.map((task) => (
+                  <Link
+                    key={task.id}
+                    to="/dashboard/workspace/$workspaceId/project/$projectId/task/$taskId"
+                    params={{
+                      workspaceId: task.workspaceId,
+                      projectId: task.projectId,
+                      taskId: task.id,
+                    }}
+                    className="grid grid-cols-12 items-center border-b px-3 py-2 text-sm hover:bg-accent"
+                  >
+                    <div className="col-span-4 min-w-0">
+                      <div className="truncate font-medium">{task.title}</div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {task.projectSlug.toUpperCase()}-{task.number ?? "?"}
+                      </div>
+                    </div>
+                    <div className="col-span-2 truncate">
+                      {task.projectName}
+                    </div>
+                    <div className="col-span-2 truncate">
+                      {task.workspaceName}
+                    </div>
+                    <div className="col-span-2">
+                      <Badge variant="outline">
+                        {task.columnName ?? task.status}
+                      </Badge>
+                    </div>
+                    <div className="col-span-1 text-xs text-muted-foreground">
+                      {task.dueDate ? (
+                        <span className="inline-flex items-center gap-1">
+                          <CalendarDays className="size-3" />
+                          {new Date(task.dueDate).toLocaleDateString()}
+                        </span>
+                      ) : (
+                        "-"
+                      )}
+                    </div>
+                    <div className="col-span-1 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <UserRound className="size-3" />
+                        {task.priority ?? "-"}
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </WorkspaceLayout>
+    </>
   );
 }
