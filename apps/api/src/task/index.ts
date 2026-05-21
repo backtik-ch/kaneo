@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { describeRoute, resolver, validator } from "hono-openapi";
@@ -6,9 +6,11 @@ import * as v from "valibot";
 import db from "../database";
 import {
   assetTable,
+  columnTable,
   projectTable,
   taskTable,
   workspaceTable,
+  workspaceUserTable,
 } from "../database/schema";
 import { taskSchema } from "../schemas";
 import {
@@ -40,6 +42,69 @@ const task = new Hono<{
     userId: string;
   };
 }>()
+  .get(
+    "/assigned/me",
+    describeRoute({
+      operationId: "listAssignedTasksForCurrentUser",
+      tags: ["Tasks"],
+      description:
+        "Get all tasks assigned to current user across accessible workspaces",
+      responses: {
+        200: {
+          description: "Assigned tasks grouped across workspaces/projects",
+          content: {
+            "application/json": { schema: resolver(v.any()) },
+          },
+        },
+      },
+    }),
+    async (c) => {
+      const userId = c.get("userId");
+      if (!userId) {
+        throw new HTTPException(401, { message: "Unauthorized" });
+      }
+
+      const rows = await db
+        .select({
+          id: taskTable.id,
+          title: taskTable.title,
+          description: taskTable.description,
+          status: taskTable.status,
+          priority: taskTable.priority,
+          number: taskTable.number,
+          projectId: taskTable.projectId,
+          columnId: taskTable.columnId,
+          dueDate: taskTable.dueDate,
+          createdAt: taskTable.createdAt,
+          updatedAt: taskTable.updatedAt,
+          workspaceId: workspaceTable.id,
+          workspaceName: workspaceTable.name,
+          projectName: projectTable.name,
+          projectSlug: projectTable.slug,
+          columnName: columnTable.name,
+          columnSlug: columnTable.slug,
+          columnIsFinal: columnTable.isFinal,
+        })
+        .from(taskTable)
+        .innerJoin(projectTable, eq(taskTable.projectId, projectTable.id))
+        .innerJoin(
+          workspaceTable,
+          eq(projectTable.workspaceId, workspaceTable.id),
+        )
+        .innerJoin(
+          workspaceUserTable,
+          and(
+            eq(workspaceUserTable.workspaceId, workspaceTable.id),
+            eq(workspaceUserTable.userId, userId),
+          ),
+        )
+        .leftJoin(columnTable, eq(taskTable.columnId, columnTable.id))
+        .where(eq(taskTable.userId, userId))
+        .orderBy(desc(taskTable.updatedAt));
+
+      return c.json({ data: rows });
+    },
+  )
   .get(
     "/tasks/:projectId",
     describeRoute({

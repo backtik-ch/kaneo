@@ -4,7 +4,7 @@ import {
   Outlet,
   useLocation,
 } from "@tanstack/react-router";
-import { Settings } from "lucide-react";
+import { Plug, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,13 @@ function RouteComponent() {
       title: t("settings:workspaceGeneral.title"),
       url: "/dashboard/settings/workspace/general",
       icon: Settings,
+    },
+    {
+      title: t("settings:workspaceIntegrations.title", {
+        defaultValue: "Integrations",
+      }),
+      url: "/dashboard/settings/workspace/integrations",
+      icon: Plug,
     },
   ];
   const isActivePath = (path: string) => location.pathname === path;

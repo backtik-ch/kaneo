@@ -36,6 +36,12 @@ export function NavMain() {
       badge: null,
     },
     {
+      title: t("navigation:sidebar.myTasks", { defaultValue: "My tasks" }),
+      url: "/dashboard/my-tasks",
+      isActive: window.location.pathname === "/dashboard/my-tasks",
+      badge: null,
+    },
+    {
       title: t("navigation:sidebar.members"),
       url: `/dashboard/workspace/${workspace.id}/members`,
       isActive:

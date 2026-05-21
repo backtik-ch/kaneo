@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   ChevronDown,
   FolderGit,
-  Github,
   MessageCircle,
   Radio,
   Send,
@@ -14,7 +13,6 @@ import PageTitle from "@/components/page-title";
 import { DiscordIntegrationSettings } from "@/components/project/discord-integration-settings";
 import { GenericWebhookIntegrationSettings } from "@/components/project/generic-webhook-integration-settings";
 import { GiteaIntegrationSettings } from "@/components/project/gitea-integration-settings";
-import { GitHubIntegrationSettings } from "@/components/project/github-integration-settings";
 import { SlackIntegrationSettings } from "@/components/project/slack-integration-settings";
 import { TelegramIntegrationSettings } from "@/components/project/telegram-integration-settings";
 import {
@@ -22,7 +20,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import useGetProject from "@/hooks/queries/project/use-get-project";
 
 export const Route = createFileRoute(
   "/_layout/_authenticated/dashboard/settings/projects/$projectId/integrations",
@@ -33,14 +30,6 @@ export const Route = createFileRoute(
 function RouteComponent() {
   const { t } = useTranslation();
   const { projectId } = Route.useParams();
-  const activeWorkspaceId = Route.useRouteContext({
-    select: (context) => context.workspaceId,
-  });
-  const { data: project } = useGetProject({
-    id: projectId,
-    workspaceId: activeWorkspaceId,
-  });
-  const workspaceId = project?.workspaceId ?? activeWorkspaceId;
 
   return (
     <>
@@ -56,17 +45,6 @@ function RouteComponent() {
         </div>
 
         <div className="space-y-6">
-          <IntegrationSection
-            icon={<Github className="size-4" />}
-            subtitle={t("settings:projectIntegrations.githubSectionSubtitle")}
-            title={t("settings:projectIntegrations.githubSectionTitle")}
-          >
-            <GitHubIntegrationSettings
-              projectId={projectId}
-              workspaceId={workspaceId}
-            />
-          </IntegrationSection>
-
           <IntegrationSection
             icon={<FolderGit className="size-4" />}
             subtitle={t("settings:projectIntegrations.giteaSectionSubtitle")}

@@ -50,7 +50,7 @@ export function GitHubIntegrationSettings({
   projectId,
   workspaceId,
 }: {
-  projectId: string;
+  projectId?: string;
   workspaceId: string;
 }) {
   const { t } = useTranslation();
@@ -217,6 +217,11 @@ export function GitHubIntegrationSettings({
   };
 
   const handleImportIssues = async () => {
+    if (!projectId) {
+      toast.error("Select a project to import issues into tasks");
+      return;
+    }
+
     if (!selectedIntegration) {
       toast.error("Select a repository first");
       return;
@@ -506,7 +511,7 @@ export function GitHubIntegrationSettings({
         )}
       </div>
 
-      {isConnected && (
+      {isConnected && projectId && (
         <div className="space-y-4 border border-border rounded-md p-4 bg-sidebar">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5">
