@@ -1,6 +1,8 @@
 import {
   DndContext,
   type DragEndEvent,
+  DragOverlay,
+  type DragStartEvent,
   PointerSensor,
   useDraggable,
   useDroppable,
@@ -214,6 +216,7 @@ function RouteComponent() {
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [query, setQuery] = useState("");
   const [hideDone, setHideDone] = useState(true);
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [workspaceFilter, setWorkspaceFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
@@ -359,6 +362,7 @@ function RouteComponent() {
   );
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    setActiveTaskId(null);
     const { active, over } = event;
     if (!over) return;
 
@@ -407,6 +411,15 @@ function RouteComponent() {
         error instanceof Error ? error.message : "Update status failed",
       );
     }
+  };
+
+  const activeTask = useMemo(
+    () => filteredAndSortedTasks.find((task) => task.id === activeTaskId),
+    [filteredAndSortedTasks, activeTaskId],
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveTaskId(String(event.active.id));
   };
 
   return (
@@ -548,7 +561,12 @@ function RouteComponent() {
               </CardContent>
             </Card>
           ) : viewMode === "kanban" ? (
-            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+            <DndContext
+              sensors={sensors}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDragCancel={() => setActiveTaskId(null)}
+            >
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
                 {BUCKETS.map((bucket) => (
                   <Card key={bucket.id} className="min-h-[240px]">
@@ -572,6 +590,22 @@ function RouteComponent() {
                   </Card>
                 ))}
               </div>
+              <DragOverlay>
+                {activeTask ? (
+                  <div className="w-[280px] rounded-md border bg-card p-2 shadow-xl">
+                    <div className="line-clamp-2 text-sm font-medium">
+                      {activeTask.title}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {activeTask.workspaceName} / {activeTask.projectName}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {activeTask.projectSlug.toUpperCase()}-
+                      {activeTask.number ?? "?"}
+                    </div>
+                  </div>
+                ) : null}
+              </DragOverlay>
             </DndContext>
           ) : (
             <Card>
