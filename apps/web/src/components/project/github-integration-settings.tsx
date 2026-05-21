@@ -36,7 +36,9 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import getColumns from "@/fetchers/column/get-columns";
 import type { VerifyGithubInstallationResponse } from "@/fetchers/github-integration/verify-github-installation";
+import upsertWorkflowRuleFetcher from "@/fetchers/workflow-rule/upsert-workflow-rule";
 import { useVerifyGithubInstallation } from "@/hooks/mutations/github-integration/use-create-github-integration";
 import useImportGithubIssues from "@/hooks/mutations/github-integration/use-import-github-issues";
 import {
@@ -138,8 +140,7 @@ export function GitHubIntegrationSettings({
   } = useGetColumns(selectedIntegrationProjectId);
   const { data: workflowRules = [], isLoading: isWorkflowRulesLoading } =
     useGetWorkflowRules(selectedIntegrationProjectId);
-  const { mutateAsync: upsertWorkflowRule, isPending: isUpdatingWorkflowRule } =
-    useUpsertWorkflowRule();
+  const { isPending: isUpdatingWorkflowRule } = useUpsertWorkflowRule();
 
   const form = useForm<GithubIntegrationFormValues>({
     resolver: standardSchemaResolver(githubIntegrationSchema),
@@ -278,6 +279,17 @@ export function GitHubIntegrationSettings({
 
   const isConnected = integrations.length > 0;
   const canImport = Boolean(isConnected && selectedIntegration?.isActive);
+  const linkedProjectIds = React.useMemo(
+    () =>
+      Array.from(
+        new Set(
+          integrations
+            .map((integration) => integration.projectId)
+            .filter(Boolean) as string[],
+        ),
+      ),
+    [integrations],
+  );
 
   if (isLoading) {
     return <div className="h-20 animate-pulse rounded-md bg-muted" />;
@@ -679,20 +691,51 @@ export function GitHubIntegrationSettings({
                       onValueChange={async (columnId) => {
                         if (!selectedIntegration.projectId || !columnId) return;
                         try {
-                          await upsertWorkflowRule({
-                            projectId: selectedIntegration.projectId,
-                            data: {
-                              integrationType: "github",
-                              eventType: event.value,
-                              columnId,
-                            },
-                          });
-                          toast.success("Règle d'automatisation mise à jour");
+                          const sourceColumn = automationColumns.find(
+                            (column) => column.id === columnId,
+                          );
+                          if (!sourceColumn) return;
+
+                          let appliedCount = 0;
+                          let skippedCount = 0;
+
+                          await Promise.all(
+                            linkedProjectIds.map(async (targetProjectId) => {
+                              const targetColumns =
+                                await getColumns(targetProjectId);
+                              const matchedColumn = targetColumns.find(
+                                (column) => column.slug === sourceColumn.slug,
+                              );
+
+                              if (!matchedColumn) {
+                                skippedCount += 1;
+                                return;
+                              }
+
+                              await upsertWorkflowRuleFetcher(targetProjectId, {
+                                integrationType: "github",
+                                eventType: event.value,
+                                columnId: matchedColumn.id,
+                              });
+
+                              appliedCount += 1;
+                            }),
+                          );
+
+                          if (skippedCount > 0) {
+                            toast.success(
+                              `Règle appliquée à ${appliedCount} projet(s), ${skippedCount} ignoré(s) (colonne manquante)`,
+                            );
+                          } else {
+                            toast.success(
+                              `Règle appliquée à tous les repos (${appliedCount})`,
+                            );
+                          }
                         } catch (error) {
                           toast.error(
                             error instanceof Error
                               ? error.message
-                              : "Impossible de mettre à jour la règle",
+                              : "Impossible de mettre à jour la règle globale",
                           );
                         }
                       }}
