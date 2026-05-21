@@ -5,8 +5,8 @@ import { columnTable, projectTable, taskTable } from "../../database/schema";
 import { publishEvent } from "../../events";
 import {
   coercePriority,
-  coerceStatus,
   getValidTaskStatuses,
+  VIRTUAL_STATUSES,
 } from "../validate-task-fields";
 import getNextTaskNumber from "./get-next-task-number";
 
@@ -37,15 +37,28 @@ async function importTasks(
 
   let taskNumber = await getNextTaskNumber(projectId);
   const validStatuses = await getValidTaskStatuses(projectId);
+  const defaultColumnStatus = validStatuses.includes("to-do")
+    ? "to-do"
+    : validStatuses.find((status) => !VIRTUAL_STATUSES.includes(status)) ||
+      "planned";
 
   const results = [];
 
   for (const taskData of tasksToImport) {
     try {
-      const { status, warning: statusWarning } = coerceStatus(
-        taskData.status,
-        validStatuses,
+      let statusWarning: string | undefined;
+      let status = taskData.status;
+
+      const isVirtualStatus = VIRTUAL_STATUSES.includes(
+        status as (typeof VIRTUAL_STATUSES)[number],
       );
+      const isUnknownStatus = !validStatuses.includes(status);
+
+      if (isVirtualStatus || isUnknownStatus) {
+        status = defaultColumnStatus;
+        statusWarning = `Status "${taskData.status}" mapped to "${status}"`;
+      }
+
       const { priority, warning: priorityWarning } = coercePriority(
         taskData.priority || "low",
       );
