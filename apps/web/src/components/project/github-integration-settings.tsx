@@ -134,12 +134,6 @@ export function GitHubIntegrationSettings({
     [integrations, selectedIntegrationId],
   );
   const selectedIntegrationProjectId = selectedIntegration?.projectId ?? "";
-  const {
-    data: automationColumns = [],
-    isLoading: isAutomationColumnsLoading,
-  } = useGetColumns(selectedIntegrationProjectId);
-  const { data: workflowRules = [], isLoading: isWorkflowRulesLoading } =
-    useGetWorkflowRules(selectedIntegrationProjectId);
   const { isPending: isUpdatingWorkflowRule } = useUpsertWorkflowRule();
 
   const form = useForm<GithubIntegrationFormValues>({
@@ -279,6 +273,10 @@ export function GitHubIntegrationSettings({
 
   const isConnected = integrations.length > 0;
   const canImport = Boolean(isConnected && selectedIntegration?.isActive);
+  const workspaceProjectIds = React.useMemo(
+    () => projects.map((project) => project.id),
+    [projects],
+  );
   const linkedProjectIds = React.useMemo(
     () =>
       Array.from(
@@ -290,6 +288,26 @@ export function GitHubIntegrationSettings({
       ),
     [integrations],
   );
+  const automationTargetProjectIds = React.useMemo(
+    () =>
+      linkedProjectIds.length > 0 ? linkedProjectIds : workspaceProjectIds,
+    [linkedProjectIds, workspaceProjectIds],
+  );
+  const referenceProjectId = React.useMemo(() => {
+    if (
+      selectedIntegrationProjectId &&
+      automationTargetProjectIds.includes(selectedIntegrationProjectId)
+    ) {
+      return selectedIntegrationProjectId;
+    }
+    return automationTargetProjectIds[0] ?? "";
+  }, [selectedIntegrationProjectId, automationTargetProjectIds]);
+  const {
+    data: automationColumns = [],
+    isLoading: isAutomationColumnsLoading,
+  } = useGetColumns(referenceProjectId);
+  const { data: workflowRules = [], isLoading: isWorkflowRulesLoading } =
+    useGetWorkflowRules(referenceProjectId);
 
   if (isLoading) {
     return <div className="h-20 animate-pulse rounded-md bg-muted" />;
@@ -656,13 +674,9 @@ export function GitHubIntegrationSettings({
             </p>
           </div>
 
-          {!selectedIntegration ? (
+          {automationTargetProjectIds.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              Sélectionnez un repository connecté pour configurer les règles.
-            </p>
-          ) : !selectedIntegration.projectId ? (
-            <p className="text-xs text-muted-foreground">
-              Liez d'abord ce repository à un projet pour configurer
+              Aucun projet disponible dans ce workspace pour configurer
               l'automatisation.
             </p>
           ) : isAutomationColumnsLoading || isWorkflowRulesLoading ? (
@@ -689,7 +703,7 @@ export function GitHubIntegrationSettings({
                     <Select
                       value={currentRule?.columnId ?? ""}
                       onValueChange={async (columnId) => {
-                        if (!selectedIntegration.projectId || !columnId) return;
+                        if (!referenceProjectId || !columnId) return;
                         try {
                           const sourceColumn = automationColumns.find(
                             (column) => column.id === columnId,
@@ -700,26 +714,31 @@ export function GitHubIntegrationSettings({
                           let skippedCount = 0;
 
                           await Promise.all(
-                            linkedProjectIds.map(async (targetProjectId) => {
-                              const targetColumns =
-                                await getColumns(targetProjectId);
-                              const matchedColumn = targetColumns.find(
-                                (column) => column.slug === sourceColumn.slug,
-                              );
+                            automationTargetProjectIds.map(
+                              async (targetProjectId) => {
+                                const targetColumns =
+                                  await getColumns(targetProjectId);
+                                const matchedColumn = targetColumns.find(
+                                  (column) => column.slug === sourceColumn.slug,
+                                );
 
-                              if (!matchedColumn) {
-                                skippedCount += 1;
-                                return;
-                              }
+                                if (!matchedColumn) {
+                                  skippedCount += 1;
+                                  return;
+                                }
 
-                              await upsertWorkflowRuleFetcher(targetProjectId, {
-                                integrationType: "github",
-                                eventType: event.value,
-                                columnId: matchedColumn.id,
-                              });
+                                await upsertWorkflowRuleFetcher(
+                                  targetProjectId,
+                                  {
+                                    integrationType: "github",
+                                    eventType: event.value,
+                                    columnId: matchedColumn.id,
+                                  },
+                                );
 
-                              appliedCount += 1;
-                            }),
+                                appliedCount += 1;
+                              },
+                            ),
                           );
 
                           if (skippedCount > 0) {
