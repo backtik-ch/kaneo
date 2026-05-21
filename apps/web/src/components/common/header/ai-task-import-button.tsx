@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2, WandSparkles } from "lucide-react";
 import { useState } from "react";
@@ -19,6 +20,7 @@ import { toast } from "@/lib/toast";
 
 export default function AiTaskImportButton() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [plan, setPlan] = useState<ImportTasksFromTextResponse | null>(null);
@@ -55,6 +57,14 @@ export default function AiTaskImportButton() {
         projectId: plan.projectId,
         tasks: plan.tasks as TaskToImport[],
       });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["tasks", plan.projectId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["project", plan.projectId],
+        }),
+      ]);
       toast.dismiss(loadingId);
       toast.success(`${result.results.successful} task(s) imported`);
 
