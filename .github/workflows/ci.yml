@@ -54,29 +54,6 @@ jobs:
       - name: Run unit tests
         run: pnpm test
 
-  build:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.32.1
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.20.2
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build monorepo
-        run: pnpm build
-
   integration:
     runs-on: ubuntu-24.04
     services:
@@ -123,6 +100,7 @@ jobs:
 
   docker-build:
     runs-on: ubuntu-24.04
+    needs: [lint, unit, integration]
     permissions:
       contents: read
       packages: write

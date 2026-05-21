@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import AiTaskImportButton from "@/components/common/header/ai-task-import-button";
 import Layout from "@/components/common/layout";
 import {
   Breadcrumb,
@@ -78,6 +79,7 @@ export default function WorkspaceLayout({
             </Breadcrumb>
           </div>
           <div className={`${cn("flex items-center gap-1.5", className)}`}>
+            <AiTaskImportButton />
             {headerActions}
           </div>
         </div>

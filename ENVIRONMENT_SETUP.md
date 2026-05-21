@@ -45,6 +45,7 @@ For local development, the web app also supports:
 Kaneo supports many optional configuration options including:
 - SSO providers (GitHub OAuth via `GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET`, Google, Discord, Custom OAuth/OIDC)
 - GitHub repository integration (GitHub App: `GITHUB_APP_ID`, `GITHUB_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET`, optional `GITHUB_APP_NAME`) — separate from GitHub SSO
+- OpenAI task import (`OPENAI_API_KEY`, optional `OPENAI_MODEL`, default `gpt-4.1-mini`)
 - SMTP configuration for email
 - Access control settings
 - CORS configuration

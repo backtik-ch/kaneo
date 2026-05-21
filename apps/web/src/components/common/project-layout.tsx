@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { CalendarDays, SquareKanban, SquircleDashed } from "lucide-react";
 import { type ReactNode, useState } from "react";
+import AiTaskImportButton from "@/components/common/header/ai-task-import-button";
 import MobileProjectNav from "@/components/common/header/mobile-project-nav";
 import ProjectCrumbSelect from "@/components/common/header/project-crumb-select";
 import WorkspaceCrumbSelect from "@/components/common/header/workspace-crumb-select";
@@ -183,6 +184,7 @@ export default function ProjectLayout({
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
+            <AiTaskImportButton />
             {headerActions}
           </div>
         </div>

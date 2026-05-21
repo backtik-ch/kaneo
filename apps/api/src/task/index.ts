@@ -27,6 +27,7 @@ import exportTasks from "./controllers/export-tasks";
 import getTask from "./controllers/get-task";
 import getTasks from "./controllers/get-tasks";
 import importTasks from "./controllers/import-tasks";
+import importTasksFromText from "./controllers/import-tasks-from-text";
 import moveTask from "./controllers/move-task";
 import updateTask from "./controllers/update-task";
 import updateTaskAssignee from "./controllers/update-task-assignee";
@@ -436,6 +437,35 @@ const task = new Hono<{
       const exportData = await exportTasks(projectId);
 
       return c.json(exportData);
+    },
+  )
+  .post(
+    "/import-from-text",
+    describeRoute({
+      operationId: "importTasksFromText",
+      tags: ["Tasks"],
+      description:
+        "Use OpenAI to choose workspace/project and transform notes into imported tasks",
+      responses: {
+        200: {
+          description: "Tasks imported from free text",
+          content: {
+            "application/json": { schema: resolver(v.any()) },
+          },
+        },
+      },
+    }),
+    validator(
+      "json",
+      v.object({
+        notes: v.pipe(v.string(), v.minLength(10)),
+      }),
+    ),
+    async (c) => {
+      const userId = c.get("userId");
+      const { notes } = c.req.valid("json");
+      const data = await importTasksFromText(notes, userId);
+      return c.json(data);
     },
   )
   .post(
