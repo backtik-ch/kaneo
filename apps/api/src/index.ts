@@ -50,10 +50,7 @@ import task from "./task";
 import taskRelation from "./task-relation";
 import telegramIntegration from "./telegram-integration";
 import timeEntry from "./time-entry";
-import {
-  authenticateApiRequest,
-  resolveAssetBearerOrCookie,
-} from "./utils/authenticate-api-request";
+import { authenticateApiRequest } from "./utils/authenticate-api-request";
 import { getInvitationDetails } from "./utils/check-registration-allowed";
 import { migrateApiKeyReferenceId } from "./utils/migrate-apikey-reference-id";
 import { migrateNotificationPreferencesSchema } from "./utils/migrate-notification-preferences-schema";
@@ -125,6 +122,11 @@ function buildContentDisposition(filename: string) {
   );
 
   return `inline; filename="${asciiFallback}"; filename*=UTF-8''${encodedFilename}`;
+}
+
+function isPublicAssetReadRequest(method: string, path: string) {
+  const isReadMethod = method === "GET" || method === "HEAD";
+  return isReadMethod && path.startsWith("/api/asset/");
 }
 
 export function createApp() {
@@ -206,7 +208,8 @@ export function createApp() {
     },
   );
 
-  api.get(
+  api.on(
+    ["GET", "HEAD"],
     "/asset/:id",
     describeRoute({
       operationId: "getAsset",
@@ -231,14 +234,8 @@ export function createApp() {
           objectKey: schema.assetTable.objectKey,
           mimeType: schema.assetTable.mimeType,
           filename: schema.assetTable.filename,
-          workspaceId: schema.assetTable.workspaceId,
-          isPublic: schema.projectTable.isPublic,
         })
         .from(schema.assetTable)
-        .innerJoin(
-          schema.projectTable,
-          eq(schema.assetTable.projectId, schema.projectTable.id),
-        )
         .where(eq(schema.assetTable.id, id))
         .limit(1);
 
@@ -246,22 +243,14 @@ export function createApp() {
         throw new HTTPException(404, { message: "Asset not found" });
       }
 
-      const { userId, apiKeyId } = await resolveAssetBearerOrCookie(c);
-
-      if (userId) {
-        await validateWorkspaceAccess(userId, asset.workspaceId, apiKeyId);
-      } else if (!asset.isPublic) {
-        throw new HTTPException(401, { message: "Unauthorized" });
-      }
-
       try {
         const object = await getPrivateObject(asset.objectKey);
+        const body =
+          c.req.method === "HEAD" ? null : (object.body as BodyInit | null);
 
-        return new Response(object.body as BodyInit, {
+        return new Response(body, {
           headers: {
-            "Cache-Control": asset.isPublic
-              ? "public, max-age=300"
-              : "private, max-age=120",
+            "Cache-Control": "public, max-age=31536000, immutable",
             "Content-Disposition": buildContentDisposition(asset.filename),
             "Content-Length": object.contentLength?.toString() || "",
             "Content-Type": object.contentType || asset.mimeType,
@@ -444,7 +433,11 @@ export function createApp() {
 
   api.use("*", async (c, next) => {
     const path = c.req.path;
-    if (path.startsWith("/api/mcp") || path.startsWith("/api/.well-known/")) {
+    if (
+      path.startsWith("/api/mcp") ||
+      path.startsWith("/api/.well-known/") ||
+      isPublicAssetReadRequest(c.req.method, path)
+    ) {
       return next();
     }
     try {
