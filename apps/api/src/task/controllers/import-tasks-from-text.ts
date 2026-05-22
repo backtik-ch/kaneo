@@ -21,6 +21,13 @@ type AiImportPlan = {
   projectName: string;
   projectSlug: string;
   tasks: ImportTask[];
+  availableProjects: Array<{
+    workspaceId: string;
+    workspaceName: string;
+    projectId: string;
+    projectName: string;
+    projectSlug: string;
+  }>;
 };
 
 const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite";
@@ -38,6 +45,7 @@ function buildPrompt(
     "Choisis le workspace ET le projet les plus pertinents parmi la liste fournie.",
     "Ensuite, extrais des tâches actionnables de la façon la plus intelligente possible.",
     "Le but étant de créer des petites tâches concises mais efficace pour le développeur",
+    "IMPORTANT: les champs `title` et `description` de toutes les tâches doivent être en français.",
     "Réponds uniquement en JSON conforme au schéma demandé.",
     "",
     `Notes:\n${notes}`,
@@ -225,6 +233,26 @@ async function callGemini(
 
 async function importTasksFromText(notes: string, userId: string) {
   const ai = await callGemini(notes, userId);
+  const accessibleRows = await db
+    .select({
+      workspaceId: workspaceTable.id,
+      workspaceName: workspaceTable.name,
+      projectId: projectTable.id,
+      projectName: projectTable.name,
+      projectSlug: projectTable.slug,
+    })
+    .from(workspaceUserTable)
+    .innerJoin(
+      workspaceTable,
+      eq(workspaceTable.id, workspaceUserTable.workspaceId),
+    )
+    .innerJoin(projectTable, eq(projectTable.workspaceId, workspaceTable.id))
+    .where(
+      and(
+        eq(workspaceUserTable.userId, userId),
+        isNull(projectTable.archivedAt),
+      ),
+    );
   const selectedProject = await db.query.projectTable.findFirst({
     where: eq(projectTable.id, ai.projectId),
     with: {
@@ -245,6 +273,13 @@ async function importTasksFromText(notes: string, userId: string) {
     projectName: selectedProject.name,
     projectSlug: selectedProject.slug,
     tasks: ai.tasks,
+    availableProjects: accessibleRows.map((row) => ({
+      workspaceId: row.workspaceId,
+      workspaceName: row.workspaceName,
+      projectId: row.projectId,
+      projectName: row.projectName,
+      projectSlug: row.projectSlug,
+    })),
   };
 
   return plan;

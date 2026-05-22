@@ -8,6 +8,13 @@ export type ImportTasksFromTextResponse = {
   projectName: string;
   projectSlug: string;
   tasks: TaskToImport[];
+  availableProjects: Array<{
+    workspaceId: string;
+    workspaceName: string;
+    projectId: string;
+    projectName: string;
+    projectSlug: string;
+  }>;
 };
 
 async function importTasksFromText(notes: string) {

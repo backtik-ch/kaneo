@@ -11,6 +11,13 @@ import {
   DialogPopup,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { TaskToImport } from "@/fetchers/task/import-tasks";
 import type { ImportTasksFromTextResponse } from "@/fetchers/task/import-tasks-from-text";
@@ -24,6 +31,9 @@ export default function AiTaskImportButton() {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [plan, setPlan] = useState<ImportTasksFromTextResponse | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null,
+  );
   const { mutateAsync: analyzeNotes, isPending: isAnalyzing } =
     useImportTasksFromText();
   const { mutateAsync: importTasksMutation, isPending: isImporting } =
@@ -42,6 +52,7 @@ export default function AiTaskImportButton() {
       const result = await analyzeNotes(notes);
       toast.dismiss(loadingId);
       setPlan(result);
+      setSelectedProjectId(result.projectId);
     } catch (error) {
       toast.error("Analysis failed. Check Gemini config or input text.");
       console.error(error);
@@ -51,18 +62,26 @@ export default function AiTaskImportButton() {
   const handleConfirmImport = async () => {
     if (!plan) return;
 
+    const finalProjectId = selectedProjectId ?? plan.projectId;
+    const selectedProject =
+      plan.availableProjects.find(
+        (project) => project.projectId === finalProjectId,
+      ) ?? null;
+    const workspaceId = selectedProject?.workspaceId ?? plan.workspaceId;
+    const projectId = selectedProject?.projectId ?? plan.projectId;
+
     try {
       const loadingId = toast.loading("Importing tasks...");
       const result = await importTasksMutation({
-        projectId: plan.projectId,
+        projectId,
         tasks: plan.tasks as TaskToImport[],
       });
       await Promise.all([
         queryClient.invalidateQueries({
-          queryKey: ["tasks", plan.projectId],
+          queryKey: ["tasks", projectId],
         }),
         queryClient.invalidateQueries({
-          queryKey: ["project", plan.projectId],
+          queryKey: ["project", projectId],
         }),
         queryClient.invalidateQueries({
           queryKey: ["my-assigned-tasks"],
@@ -78,12 +97,13 @@ export default function AiTaskImportButton() {
       setOpen(false);
       setNotes("");
       setPlan(null);
+      setSelectedProjectId(null);
 
       navigate({
         to: "/dashboard/workspace/$workspaceId/project/$projectId/board",
         params: {
-          workspaceId: plan.workspaceId,
-          projectId: plan.projectId,
+          workspaceId,
+          projectId,
         },
       });
     } catch (error) {
@@ -136,6 +156,30 @@ export default function AiTaskImportButton() {
                     {plan.projectName} ({plan.projectSlug})
                   </span>
                 </div>
+                <div className="mt-3 max-w-md">
+                  <span className="mb-1 block text-muted-foreground text-xs">
+                    Corriger le projet si besoin
+                  </span>
+                  <Select
+                    value={selectedProjectId ?? plan.projectId}
+                    onValueChange={setSelectedProjectId}
+                  >
+                    <SelectTrigger className="h-8 w-full text-xs">
+                      <SelectValue placeholder="Sélectionner un projet" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {plan.availableProjects.map((project) => (
+                        <SelectItem
+                          key={project.projectId}
+                          value={project.projectId}
+                        >
+                          {project.workspaceName} / {project.projectName} (
+                          {project.projectSlug})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <span className="text-muted-foreground">Tasks: </span>
                   <span className="font-medium">{plan.tasks.length}</span>
@@ -169,6 +213,7 @@ export default function AiTaskImportButton() {
               onClick={() => {
                 setOpen(false);
                 setPlan(null);
+                setSelectedProjectId(null);
               }}
               disabled={isPending}
             >
