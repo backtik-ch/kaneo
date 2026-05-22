@@ -40,6 +40,9 @@ export default function AiTaskImportButton() {
     useImportTasks();
 
   const isPending = isAnalyzing || isImporting;
+  const selectedProjectOption = plan?.availableProjects.find(
+    (project) => project.projectId === (selectedProjectId ?? plan.projectId),
+  );
 
   const handleAnalyze = async () => {
     if (notes.trim().length < 10) {
@@ -165,7 +168,11 @@ export default function AiTaskImportButton() {
                     onValueChange={setSelectedProjectId}
                   >
                     <SelectTrigger className="h-8 w-full text-xs">
-                      <SelectValue placeholder="Sélectionner un projet" />
+                      <SelectValue placeholder="Sélectionner un projet">
+                        {selectedProjectOption
+                          ? `${selectedProjectOption.workspaceName} / ${selectedProjectOption.projectName} (${selectedProjectOption.projectSlug})`
+                          : undefined}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {plan.availableProjects.map((project) => (
