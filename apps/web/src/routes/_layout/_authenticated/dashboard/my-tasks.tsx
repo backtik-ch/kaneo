@@ -1,16 +1,42 @@
+import {
+  closestCorners,
+  DndContext,
+  type DragEndEvent,
+  DragOverlay,
+  type DragStartEvent,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useQueries } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  CalendarDays,
+  ChevronRight,
+  Layers,
+  List as ListIcon,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import WorkspaceLayout from "@/components/common/workspace-layout";
 import PageTitle from "@/components/page-title";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-
 import getColumns from "@/fetchers/column/get-columns";
 import { useUpdateTaskStatus } from "@/hooks/mutations/task/use-update-task-status";
 import { useGetMyAssignedTasks } from "@/hooks/queries/task/use-get-my-assigned-tasks";
@@ -18,34 +44,6 @@ import { cn } from "@/lib/cn";
 import { getColumnIcon } from "@/lib/column";
 import { toast } from "@/lib/toast";
 import type Task from "@/types/task";
-import {
-    closestCorners,
-    DndContext,
-    type DragEndEvent,
-    DragOverlay,
-    type DragStartEvent,
-    KeyboardSensor,
-    MouseSensor,
-    TouchSensor,
-    useDroppable,
-    useSensor,
-    useSensors,
-} from "@dnd-kit/core";
-import {
-    SortableContext,
-    useSortable,
-    verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { useQueries } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-    CalendarDays,
-    ChevronRight,
-    Layers,
-    List as ListIcon,
-} from "lucide-react";
-import { useMemo, useState } from "react";
 
 export const Route = createFileRoute(
   "/_layout/_authenticated/dashboard/my-tasks",
@@ -278,7 +276,7 @@ function RouteComponent() {
   const { mutateAsync: updateTaskStatus } = useUpdateTaskStatus();
 
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
-  const [query, setQuery] = useState("");
+  const [query, _setQuery] = useState("");
   const [hideDone, setHideDone] = useState(true);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [workspaceFilter, setWorkspaceFilter] = useState("all");
@@ -524,9 +522,14 @@ function RouteComponent() {
                     value={workspaceFilter}
                     onValueChange={(value) => setWorkspaceFilter(value)}
                   >
-                    <SelectTrigger size="sm" className="w-auto text-xs font-medium">
+                    <SelectTrigger
+                      size="sm"
+                      className="w-auto text-xs font-medium"
+                    >
                       <SelectValue>
-                        {workspaceFilter === "all" ? "Tous les workspaces" : workspaceFilter}
+                        {workspaceFilter === "all"
+                          ? "Tous les workspaces"
+                          : workspaceFilter}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -543,9 +546,15 @@ function RouteComponent() {
                     value={projectFilter}
                     onValueChange={(value) => setProjectFilter(value)}
                   >
-                    <SelectTrigger size="sm" className="w-auto text-xs font-medium">
+                    <SelectTrigger
+                      size="sm"
+                      className="w-auto text-xs font-medium"
+                    >
                       <SelectValue>
-                        {projectFilter === "all" ? "Tous les projets" : (projectOptions.find((p) => p.id === projectFilter)?.name ?? projectFilter)}
+                        {projectFilter === "all"
+                          ? "Tous les projets"
+                          : (projectOptions.find((p) => p.id === projectFilter)
+                              ?.name ?? projectFilter)}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -562,9 +571,14 @@ function RouteComponent() {
                     value={priorityFilter}
                     onValueChange={(value) => setPriorityFilter(value)}
                   >
-                    <SelectTrigger size="sm" className="w-auto text-xs font-medium">
+                    <SelectTrigger
+                      size="sm"
+                      className="w-auto text-xs font-medium"
+                    >
                       <SelectValue>
-                        {priorityFilter === "all" ? "Toutes les priorites" : priorityFilter}
+                        {priorityFilter === "all"
+                          ? "Toutes les priorites"
+                          : priorityFilter}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -581,9 +595,16 @@ function RouteComponent() {
                     value={sortMode}
                     onValueChange={(value) => setSortMode(value as SortMode)}
                   >
-                    <SelectTrigger size="sm" className="w-auto text-xs font-medium">
+                    <SelectTrigger
+                      size="sm"
+                      className="w-auto text-xs font-medium"
+                    >
                       <SelectValue>
-                        {sortMode === "updated_desc" ? "Derniere MAJ" : sortMode === "due_asc" ? "Echeance" : "Priorite"}
+                        {sortMode === "updated_desc"
+                          ? "Derniere MAJ"
+                          : sortMode === "due_asc"
+                            ? "Echeance"
+                            : "Priorite"}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -641,189 +662,208 @@ function RouteComponent() {
           </div>
 
           <div className="flex flex-1 overflow-hidden">
-          {isLoading ? (
-            <div className="p-4">
-            <Card>
-              <CardContent className="py-8 text-sm text-muted-foreground">
-                Chargement...
-              </CardContent>
-            </Card>
-            </div>
-          ) : filteredAndSortedTasks.length === 0 ? (
-            <div className="p-4">
-            <Card>
-              <CardContent className="py-10 text-center">
-                <p className="text-sm font-medium">Aucune tache a afficher</p>
-                <p className="mt-1 text-muted-foreground text-xs">
-                  Essaie de retirer des filtres ou d'afficher les terminees.
-                </p>
-              </CardContent>
-            </Card>
-            </div>
-          ) : viewMode === "kanban" ? (
-            <div className="p-4 w-full overflow-auto">
-            <DndContext
-              collisionDetection={closestCorners}
-              sensors={sensors}
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              onDragCancel={() => setActiveTaskId(null)}
-            >
-              <div className="flex h-full flex-1 gap-4 overflow-x-visible pb-4">
-                {BUCKETS.filter((bucket) => !(hideDone && bucket.id === "done")).map((bucket) => (
-                  <div
-                    key={bucket.id}
-                    className="group relative flex h-full min-w-80 w-full flex-1 flex-col rounded-xl border border-border/70 bg-muted/40 shadow-xs/5 transition-all duration-300 ease-out hover:border-border/90 dark:bg-card/90"
-                  >
-                    <div className="shrink-0 border-b border-border/60 px-3 py-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
-                          {getColumnIcon(COLUMN_ICON_BY_BUCKET[bucket.id])}
-                          <span className="truncate">{bucket.label}</span>
-                        </div>
-                        <Badge variant="secondary">
-                          {grouped[bucket.id].length}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 py-1 [-webkit-overflow-scrolling:touch]">
-                      <DroppableBucket bucket={bucket.id}>
-                        <SortableContext
-                          items={grouped[bucket.id].map((task) => task.id)}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          <div className="flex flex-col gap-2">
-                            {grouped[bucket.id].map((task) => (
-                              <DraggableTaskCard key={task.id} task={task} />
-                            ))}
-                          </div>
-                        </SortableContext>
-                      </DroppableBucket>
-                    </div>
-                  </div>
-                ))}
+            {isLoading ? (
+              <div className="p-4">
+                <Card>
+                  <CardContent className="py-8 text-sm text-muted-foreground">
+                    Chargement...
+                  </CardContent>
+                </Card>
               </div>
-              <DragOverlay>
-                {activeTask ? (
-                  <div className="w-[280px] rounded-md border bg-card p-2 shadow-xl">
-                    <div className="line-clamp-2 text-sm font-medium">
-                      {activeTask.title}
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {activeTask.workspaceName} · {activeTask.projectName}
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {activeTask.projectSlug.toUpperCase()}-
-                      {activeTask.number ?? "?"}
-                    </div>
+            ) : filteredAndSortedTasks.length === 0 ? (
+              <div className="p-4">
+                <Card>
+                  <CardContent className="py-10 text-center">
+                    <p className="text-sm font-medium">
+                      Aucune tache a afficher
+                    </p>
+                    <p className="mt-1 text-muted-foreground text-xs">
+                      Essaie de retirer des filtres ou d'afficher les terminees.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : viewMode === "kanban" ? (
+              <div className="p-4 w-full overflow-auto">
+                <DndContext
+                  collisionDetection={closestCorners}
+                  sensors={sensors}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={() => setActiveTaskId(null)}
+                >
+                  <div className="flex h-full flex-1 gap-4 overflow-x-visible pb-4">
+                    {BUCKETS.filter(
+                      (bucket) => !(hideDone && bucket.id === "done"),
+                    ).map((bucket) => (
+                      <div
+                        key={bucket.id}
+                        className="group relative flex h-full min-w-80 w-full flex-1 flex-col rounded-xl border border-border/70 bg-muted/40 shadow-xs/5 transition-all duration-300 ease-out hover:border-border/90 dark:bg-card/90"
+                      >
+                        <div className="shrink-0 border-b border-border/60 px-3 py-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
+                              {getColumnIcon(COLUMN_ICON_BY_BUCKET[bucket.id])}
+                              <span className="truncate">{bucket.label}</span>
+                            </div>
+                            <Badge variant="secondary">
+                              {grouped[bucket.id].length}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 py-1 [-webkit-overflow-scrolling:touch]">
+                          <DroppableBucket bucket={bucket.id}>
+                            <SortableContext
+                              items={grouped[bucket.id].map((task) => task.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              <div className="flex flex-col gap-2">
+                                {grouped[bucket.id].map((task) => (
+                                  <DraggableTaskCard
+                                    key={task.id}
+                                    task={task}
+                                  />
+                                ))}
+                              </div>
+                            </SortableContext>
+                          </DroppableBucket>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
-            </div>
-          ) : (
-            <div className="w-full h-full overflow-auto bg-muted/20">
-              <div className="divide-y divide-border/50">
-                {BUCKETS.filter((bucket) => !(hideDone && bucket.id === "done")).map((bucket) => {
-                  const bucketTasks = grouped[bucket.id];
+                  <DragOverlay>
+                    {activeTask ? (
+                      <div className="w-[280px] rounded-md border bg-card p-2 shadow-xl">
+                        <div className="line-clamp-2 text-sm font-medium">
+                          {activeTask.title}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {activeTask.workspaceName} · {activeTask.projectName}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {activeTask.projectSlug.toUpperCase()}-
+                          {activeTask.number ?? "?"}
+                        </div>
+                      </div>
+                    ) : null}
+                  </DragOverlay>
+                </DndContext>
+              </div>
+            ) : (
+              <div className="w-full h-full overflow-auto bg-muted/20">
+                <div className="divide-y divide-border/50">
+                  {BUCKETS.filter(
+                    (bucket) => !(hideDone && bucket.id === "done"),
+                  ).map((bucket) => {
+                    const bucketTasks = grouped[bucket.id];
 
-                  return (
-                    <div
-                      key={bucket.id}
-                      className={cn(
-                        "border-b border-border/50 transition-all duration-200 overflow-auto",
-                      )}
-                    >
-                      <div className="flex items-center justify-between py-2 px-4 bg-muted/60 border-b border-border/50">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedSections((prev) => ({
-                              ...prev,
-                              [bucket.id]: !prev[bucket.id],
-                            }))
-                          }
-                          className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-foreground transition-colors"
-                        >
-                          <ChevronRight
-                            className={cn(
-                              "w-3 h-3 transition-transform",
-                              expandedSections[bucket.id] && "rotate-90",
+                    return (
+                      <div
+                        key={bucket.id}
+                        className={cn(
+                          "border-b border-border/50 transition-all duration-200 overflow-auto",
+                        )}
+                      >
+                        <div className="flex items-center justify-between py-2 px-4 bg-muted/60 border-b border-border/50">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedSections((prev) => ({
+                                ...prev,
+                                [bucket.id]: !prev[bucket.id],
+                              }))
+                            }
+                            className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-foreground transition-colors"
+                          >
+                            <ChevronRight
+                              className={cn(
+                                "w-3 h-3 transition-transform",
+                                expandedSections[bucket.id] && "rotate-90",
+                              )}
+                            />
+                            <div className="flex items-center gap-2 h-4">
+                              {getColumnIcon(COLUMN_ICON_BY_BUCKET[bucket.id])}
+                              <div className="flex items-center gap-1">
+                                <span className="mt-1 mr-1">
+                                  {bucket.label}
+                                </span>
+                                <span className="text-xs text-muted-foreground mt-0.5">
+                                  {bucketTasks.length}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+
+                        {expandedSections[bucket.id] && (
+                          <div className="bg-card">
+                            {bucketTasks.length === 0 ? (
+                              <div className="py-6 px-4 text-center text-xs text-muted-foreground">
+                                Aucune tache
+                              </div>
+                            ) : (
+                              bucketTasks.map((task) => (
+                                <Link
+                                  key={task.id}
+                                  to="/dashboard/workspace/$workspaceId/project/$projectId/task/$taskId"
+                                  params={{
+                                    workspaceId: task.workspaceId,
+                                    projectId: task.projectId,
+                                    taskId: task.id,
+                                  }}
+                                  className="group flex items-center gap-3 px-4 py-1.5 border-b border-border/50 transition-colors hover:bg-accent/60"
+                                >
+                                  <div className="text-xs font-mono text-muted-foreground shrink-0">
+                                    {task.projectSlug.toUpperCase()}-
+                                    {task.number ?? "?"}
+                                  </div>
+
+                                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                                    <span className="text-sm text-foreground truncate">
+                                      {task.title}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
+                                    <span className="truncate max-w-32">
+                                      {task.projectName}
+                                    </span>
+                                    <span className="text-muted-foreground/50">
+                                      ·
+                                    </span>
+                                    <span className="truncate max-w-32">
+                                      {task.workspaceName}
+                                    </span>
+                                  </div>
+
+                                  {task.dueDate && (
+                                    <div className="flex items-center gap-1 text-[10px] px-2 py-1 rounded shrink-0 text-muted-foreground">
+                                      <CalendarDays className="w-3 h-3" />
+                                      <span>
+                                        {new Date(
+                                          task.dueDate,
+                                        ).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {task.priority &&
+                                    task.priority !== "no-priority" && (
+                                      <div className="shrink-0 text-xs text-muted-foreground">
+                                        {task.priority}
+                                      </div>
+                                    )}
+                                </Link>
+                              ))
                             )}
-                          />
-                          <div className="flex items-center gap-2 h-4">
-                            {getColumnIcon(COLUMN_ICON_BY_BUCKET[bucket.id])}
-                            <div className="flex items-center gap-1">
-                              <span className="mt-1 mr-1">{bucket.label}</span>
-                              <span className="text-xs text-muted-foreground mt-0.5">
-                                {bucketTasks.length}
-                              </span>
-                            </div>
                           </div>
-                        </button>
+                        )}
                       </div>
-
-                      {expandedSections[bucket.id] && (
-                        <div className="bg-card">
-                          {bucketTasks.length === 0 ? (
-                            <div className="py-6 px-4 text-center text-xs text-muted-foreground">
-                              Aucune tache
-                            </div>
-                          ) : (
-                            bucketTasks.map((task) => (
-                              <Link
-                                key={task.id}
-                                to="/dashboard/workspace/$workspaceId/project/$projectId/task/$taskId"
-                                params={{
-                                  workspaceId: task.workspaceId,
-                                  projectId: task.projectId,
-                                  taskId: task.id,
-                                }}
-                                className="group flex items-center gap-3 px-4 py-1.5 border-b border-border/50 transition-colors hover:bg-accent/60"
-                              >
-                                <div className="text-xs font-mono text-muted-foreground shrink-0">
-                                  {task.projectSlug.toUpperCase()}-{task.number ?? "?"}
-                                </div>
-
-                                <div className="flex-1 min-w-0 flex items-center gap-2">
-                                  <span className="text-sm text-foreground truncate">
-                                    {task.title}
-                                  </span>
-                                </div>
-
-                                <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
-                                  <span className="truncate max-w-32">
-                                    {task.projectName}
-                                  </span>
-                                  <span className="text-muted-foreground/50">·</span>
-                                  <span className="truncate max-w-32">
-                                    {task.workspaceName}
-                                  </span>
-                                </div>
-
-                                {task.dueDate && (
-                                  <div className="flex items-center gap-1 text-[10px] px-2 py-1 rounded shrink-0 text-muted-foreground">
-                                    <CalendarDays className="w-3 h-3" />
-                                    <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-                                  </div>
-                                )}
-
-                                {task.priority && task.priority !== "no-priority" && (
-                                  <div className="shrink-0 text-xs text-muted-foreground">
-                                    {task.priority}
-                                  </div>
-                                )}
-                              </Link>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
           </div>
         </div>
       </WorkspaceLayout>

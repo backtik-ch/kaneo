@@ -1,24 +1,24 @@
+import type { ReactNode } from "react";
 import AiTaskImportButton from "@/components/common/header/ai-task-import-button";
 import Layout from "@/components/common/layout";
 import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbSeparator,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { KbdSequence } from "@/components/ui/kbd";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { shortcuts } from "@/constants/shortcuts";
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { cn } from "@/lib/cn";
-import type { ReactNode } from "react";
 
 type WorkspaceLayoutProps = {
   title: string;
