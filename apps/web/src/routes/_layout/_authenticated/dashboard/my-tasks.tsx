@@ -1,52 +1,51 @@
+import WorkspaceLayout from "@/components/common/workspace-layout";
+import PageTitle from "@/components/page-title";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+
 import {
-  closestCorners,
-  DndContext,
-  type DragEndEvent,
-  DragOverlay,
-  type DragStartEvent,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useDroppable,
-  useSensor,
-  useSensors,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+
+import getColumns from "@/fetchers/column/get-columns";
+import { useUpdateTaskStatus } from "@/hooks/mutations/task/use-update-task-status";
+import { useGetMyAssignedTasks } from "@/hooks/queries/task/use-get-my-assigned-tasks";
+import { cn } from "@/lib/cn";
+import { getColumnIcon } from "@/lib/column";
+import { toast } from "@/lib/toast";
+import type Task from "@/types/task";
+import {
+    closestCorners,
+    DndContext,
+    type DragEndEvent,
+    DragOverlay,
+    type DragStartEvent,
+    KeyboardSensor,
+    MouseSensor,
+    TouchSensor,
+    useDroppable,
+    useSensor,
+    useSensors,
 } from "@dnd-kit/core";
 import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
+    SortableContext,
+    useSortable,
+    verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useQueries } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  CalendarDays,
-  Layers,
-  List as ListIcon,
-  Search,
-  UserRound,
+    CalendarDays,
+    ChevronRight,
+    Layers,
+    List as ListIcon,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import WorkspaceLayout from "@/components/common/workspace-layout";
-import PageTitle from "@/components/page-title";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import getColumns from "@/fetchers/column/get-columns";
-import { useUpdateTaskStatus } from "@/hooks/mutations/task/use-update-task-status";
-import { useGetMyAssignedTasks } from "@/hooks/queries/task/use-get-my-assigned-tasks";
-import { getColumnIcon } from "@/lib/column";
-import { toast } from "@/lib/toast";
-import type Task from "@/types/task";
 
 export const Route = createFileRoute(
   "/_layout/_authenticated/dashboard/my-tasks",
@@ -172,6 +171,8 @@ function DraggableTaskCard({
     projectId: string;
     workspaceId: string;
     number: number | null;
+    priority: string | null;
+    dueDate: string | null;
   };
 }) {
   const {
@@ -209,14 +210,42 @@ function DraggableTaskCard({
             : "border-border hover:border-border/90 hover:bg-background hover:shadow-sm"
         }`}
       >
-        <div className="line-clamp-2 text-sm font-medium leading-snug">
-          {task.title}
+        <div className="mb-2 text-[10px] font-mono text-muted-foreground/90">
+          {task.projectSlug.toUpperCase()}-{task.number ?? "?"}
         </div>
-        <div className="mt-2 text-xs text-muted-foreground">
+
+        <div className="absolute top-3 right-3 text-xs text-muted-foreground truncate max-w-24">
           {task.workspaceName} / {task.projectName}
         </div>
-        <div className="mt-1 text-xs text-muted-foreground">
-          {task.projectSlug.toUpperCase()}-{task.number ?? "?"}
+
+        <div className="mb-2.5 pr-6">
+          <div
+            className="overflow-hidden break-words text-sm leading-5 font-medium text-foreground/95"
+            style={{
+              display: "-webkit-box",
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: "vertical",
+              wordBreak: "break-word",
+              hyphens: "auto",
+            }}
+          >
+            {task.title}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {task.priority && task.priority !== "no-priority" && (
+            <span className="inline-flex items-center gap-1 rounded border border-border/70 bg-muted/55 px-2 py-1 text-[10px] font-medium text-muted-foreground">
+              {task.priority}
+            </span>
+          )}
+
+          {task.dueDate && (
+            <span className="inline-flex items-center gap-1 rounded border border-border/70 bg-muted/55 px-2 py-1 text-[10px] font-medium text-muted-foreground">
+              <CalendarDays className="w-3 h-3" />
+              {new Date(task.dueDate).toLocaleDateString()}
+            </span>
+          )}
         </div>
       </Link>
     </div>
@@ -256,6 +285,15 @@ function RouteComponent() {
   const [projectFilter, setProjectFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [sortMode, setSortMode] = useState<SortMode>("updated_desc");
+  const [expandedSections, setExpandedSections] = useState<
+    Record<StatusBucket, boolean>
+  >(() => ({
+    backlog: true,
+    todo: true,
+    in_progress: true,
+    in_review: true,
+    done: true,
+  }));
 
   const projectIds = useMemo(
     () => Array.from(new Set(tasks.map((task) => task.projectId))),
@@ -476,133 +514,143 @@ function RouteComponent() {
   return (
     <>
       <PageTitle title="Mes taches" />
-      <WorkspaceLayout title="Mes taches">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-          <Card>
-            <CardContent className="space-y-4 pt-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <Tabs
-                  value={viewMode}
-                  onValueChange={(v) => setViewMode(v as ViewMode)}
-                >
-                  <TabsList>
-                    <TabsTrigger value="kanban">
-                      <Layers className="mr-1 size-4" />
-                      Kanban
-                    </TabsTrigger>
-                    <TabsTrigger value="list">
-                      <ListIcon className="mr-1 size-4" />
-                      Liste
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
+      <WorkspaceLayout title="Mes taches" hideWorkspaceBreadcrumb>
+        <div className="flex w-full flex-col h-full min-h-0 overflow-hidden">
+          <div className="border-border/80 border-b bg-card/80 backdrop-blur supports-backdrop-filter:bg-card/70">
+            <div className="flex min-h-10 items-center px-3 py-1.5">
+              <div className="flex w-full flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Select
+                    value={workspaceFilter}
+                    onValueChange={(value) => setWorkspaceFilter(value)}
+                  >
+                    <SelectTrigger size="sm" className="w-auto text-xs font-medium">
+                      <SelectValue>
+                        {workspaceFilter === "all" ? "Tous les workspaces" : workspaceFilter}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les workspaces</SelectItem>
+                      {workspaceOptions.map((workspace) => (
+                        <SelectItem key={workspace} value={workspace}>
+                          {workspace}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={hideDone ? "secondary" : "outline"}
-                    size="sm"
+                  <Select
+                    value={projectFilter}
+                    onValueChange={(value) => setProjectFilter(value)}
+                  >
+                    <SelectTrigger size="sm" className="w-auto text-xs font-medium">
+                      <SelectValue>
+                        {projectFilter === "all" ? "Tous les projets" : (projectOptions.find((p) => p.id === projectFilter)?.name ?? projectFilter)}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les projets</SelectItem>
+                      {projectOptions.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={priorityFilter}
+                    onValueChange={(value) => setPriorityFilter(value)}
+                  >
+                    <SelectTrigger size="sm" className="w-auto text-xs font-medium">
+                      <SelectValue>
+                        {priorityFilter === "all" ? "Toutes les priorites" : priorityFilter}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toutes les priorites</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="no-priority">No priority</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={sortMode}
+                    onValueChange={(value) => setSortMode(value as SortMode)}
+                  >
+                    <SelectTrigger size="sm" className="w-auto text-xs font-medium">
+                      <SelectValue>
+                        {sortMode === "updated_desc" ? "Derniere MAJ" : sortMode === "due_asc" ? "Echeance" : "Priorite"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="updated_desc">Derniere MAJ</SelectItem>
+                      <SelectItem value="due_asc">Echeance</SelectItem>
+                      <SelectItem value="priority_desc">Priorite</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <button
+                    type="button"
+                    className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors ${
+                      hideDone
+                        ? "border-border bg-accent text-foreground"
+                        : "border-border bg-background text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                    }`}
                     onClick={() => setHideDone((value) => !value)}
                   >
                     {hideDone ? "Terminees masquees" : "Afficher terminees"}
-                  </Button>
-                </div>
-              </div>
+                  </button>
 
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
-                <div className="relative md:col-span-2">
-                  <Search className="pointer-events-none absolute top-2.5 left-2 size-4 text-muted-foreground" />
-                  <Input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    className="pl-8"
-                    placeholder="Rechercher une tache, projet, workspace..."
-                  />
+                  <span className="text-muted-foreground text-[11px] ml-1">
+                    {filteredAndSortedTasks.length} tache(s)
+                  </span>
                 </div>
 
-                <Select
-                  value={workspaceFilter}
-                  onValueChange={(value) => setWorkspaceFilter(value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Tous les workspaces" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les workspaces</SelectItem>
-                    {workspaceOptions.map((workspace) => (
-                      <SelectItem key={workspace} value={workspace}>
-                        {workspace}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  value={projectFilter}
-                  onValueChange={(value) => setProjectFilter(value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Tous les projets" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les projets</SelectItem>
-                    {projectOptions.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  value={priorityFilter}
-                  onValueChange={(value) => setPriorityFilter(value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Toutes les priorites" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toutes les priorites</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="no-priority">No priority</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="text-muted-foreground text-xs">
-                  {filteredAndSortedTasks.length} tache(s)
+                <div className="inline-flex items-center gap-1">
+                  <button
+                    type="button"
+                    className={`inline-flex h-6 items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors ${
+                      viewMode === "kanban"
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                    }`}
+                    onClick={() => setViewMode("kanban")}
+                  >
+                    <Layers className="h-3 w-3" />
+                    Kanban
+                  </button>
+                  <button
+                    type="button"
+                    className={`inline-flex h-6 items-center gap-1 rounded-md px-2 text-xs font-medium transition-colors ${
+                      viewMode === "list"
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                    }`}
+                    onClick={() => setViewMode("list")}
+                  >
+                    <ListIcon className="h-3 w-3" />
+                    Liste
+                  </button>
                 </div>
-                <Select
-                  value={sortMode}
-                  onValueChange={(value) => setSortMode(value as SortMode)}
-                >
-                  <SelectTrigger className="w-full sm:w-64">
-                    <SelectValue placeholder="Tri" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="updated_desc">
-                      Tri: Derniere mise a jour
-                    </SelectItem>
-                    <SelectItem value="due_asc">
-                      Tri: Echeance proche
-                    </SelectItem>
-                    <SelectItem value="priority_desc">Tri: Priorite</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
+          <div className="flex flex-1 overflow-hidden">
           {isLoading ? (
+            <div className="p-4">
             <Card>
               <CardContent className="py-8 text-sm text-muted-foreground">
                 Chargement...
               </CardContent>
             </Card>
+            </div>
           ) : filteredAndSortedTasks.length === 0 ? (
+            <div className="p-4">
             <Card>
               <CardContent className="py-10 text-center">
                 <p className="text-sm font-medium">Aucune tache a afficher</p>
@@ -611,7 +659,9 @@ function RouteComponent() {
                 </p>
               </CardContent>
             </Card>
+            </div>
           ) : viewMode === "kanban" ? (
+            <div className="p-4 w-full overflow-auto">
             <DndContext
               collisionDetection={closestCorners}
               sensors={sensors}
@@ -619,11 +669,11 @@ function RouteComponent() {
               onDragEnd={handleDragEnd}
               onDragCancel={() => setActiveTaskId(null)}
             >
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-                {BUCKETS.map((bucket) => (
+              <div className="flex h-full flex-1 gap-4 overflow-x-visible pb-4">
+                {BUCKETS.filter((bucket) => !(hideDone && bucket.id === "done")).map((bucket) => (
                   <div
                     key={bucket.id}
-                    className="group relative flex h-full min-h-[260px] w-full flex-col rounded-xl border border-border/70 bg-muted/40 shadow-xs/5 transition-all duration-300 ease-out hover:border-border/90 dark:bg-card/90"
+                    className="group relative flex h-full min-w-80 w-full flex-1 flex-col rounded-xl border border-border/70 bg-muted/40 shadow-xs/5 transition-all duration-300 ease-out hover:border-border/90 dark:bg-card/90"
                   >
                     <div className="shrink-0 border-b border-border/60 px-3 py-2">
                       <div className="flex items-center justify-between">
@@ -660,7 +710,7 @@ function RouteComponent() {
                       {activeTask.title}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {activeTask.workspaceName} / {activeTask.projectName}
+                      {activeTask.workspaceName} · {activeTask.projectName}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {activeTask.projectSlug.toUpperCase()}-
@@ -670,66 +720,111 @@ function RouteComponent() {
                 ) : null}
               </DragOverlay>
             </DndContext>
+            </div>
           ) : (
-            <Card>
-              <CardContent className="p-0">
-                <div className="grid grid-cols-12 border-b px-3 py-2 text-xs text-muted-foreground">
-                  <div className="col-span-4">Tache</div>
-                  <div className="col-span-2">Projet</div>
-                  <div className="col-span-2">Workspace</div>
-                  <div className="col-span-2">Statut</div>
-                  <div className="col-span-1">Echeance</div>
-                  <div className="col-span-1">Priorite</div>
-                </div>
-                {filteredAndSortedTasks.map((task) => (
-                  <Link
-                    key={task.id}
-                    to="/dashboard/workspace/$workspaceId/project/$projectId/task/$taskId"
-                    params={{
-                      workspaceId: task.workspaceId,
-                      projectId: task.projectId,
-                      taskId: task.id,
-                    }}
-                    className="grid grid-cols-12 items-center border-b px-3 py-2 text-sm hover:bg-accent"
-                  >
-                    <div className="col-span-4 min-w-0">
-                      <div className="truncate font-medium">{task.title}</div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {task.projectSlug.toUpperCase()}-{task.number ?? "?"}
+            <div className="w-full h-full overflow-auto bg-muted/20">
+              <div className="divide-y divide-border/50">
+                {BUCKETS.filter((bucket) => !(hideDone && bucket.id === "done")).map((bucket) => {
+                  const bucketTasks = grouped[bucket.id];
+
+                  return (
+                    <div
+                      key={bucket.id}
+                      className={cn(
+                        "border-b border-border/50 transition-all duration-200 overflow-auto",
+                      )}
+                    >
+                      <div className="flex items-center justify-between py-2 px-4 bg-muted/60 border-b border-border/50">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpandedSections((prev) => ({
+                              ...prev,
+                              [bucket.id]: !prev[bucket.id],
+                            }))
+                          }
+                          className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-foreground transition-colors"
+                        >
+                          <ChevronRight
+                            className={cn(
+                              "w-3 h-3 transition-transform",
+                              expandedSections[bucket.id] && "rotate-90",
+                            )}
+                          />
+                          <div className="flex items-center gap-2 h-4">
+                            {getColumnIcon(COLUMN_ICON_BY_BUCKET[bucket.id])}
+                            <div className="flex items-center gap-1">
+                              <span className="mt-1 mr-1">{bucket.label}</span>
+                              <span className="text-xs text-muted-foreground mt-0.5">
+                                {bucketTasks.length}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
                       </div>
-                    </div>
-                    <div className="col-span-2 truncate">
-                      {task.projectName}
-                    </div>
-                    <div className="col-span-2 truncate">
-                      {task.workspaceName}
-                    </div>
-                    <div className="col-span-2">
-                      <Badge variant="outline">
-                        {task.columnName ?? task.status}
-                      </Badge>
-                    </div>
-                    <div className="col-span-1 text-xs text-muted-foreground">
-                      {task.dueDate ? (
-                        <span className="inline-flex items-center gap-1">
-                          <CalendarDays className="size-3" />
-                          {new Date(task.dueDate).toLocaleDateString()}
-                        </span>
-                      ) : (
-                        "-"
+
+                      {expandedSections[bucket.id] && (
+                        <div className="bg-card">
+                          {bucketTasks.length === 0 ? (
+                            <div className="py-6 px-4 text-center text-xs text-muted-foreground">
+                              Aucune tache
+                            </div>
+                          ) : (
+                            bucketTasks.map((task) => (
+                              <Link
+                                key={task.id}
+                                to="/dashboard/workspace/$workspaceId/project/$projectId/task/$taskId"
+                                params={{
+                                  workspaceId: task.workspaceId,
+                                  projectId: task.projectId,
+                                  taskId: task.id,
+                                }}
+                                className="group flex items-center gap-3 px-4 py-1.5 border-b border-border/50 transition-colors hover:bg-accent/60"
+                              >
+                                <div className="text-xs font-mono text-muted-foreground shrink-0">
+                                  {task.projectSlug.toUpperCase()}-{task.number ?? "?"}
+                                </div>
+
+                                <div className="flex-1 min-w-0 flex items-center gap-2">
+                                  <span className="text-sm text-foreground truncate">
+                                    {task.title}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
+                                  <span className="truncate max-w-32">
+                                    {task.projectName}
+                                  </span>
+                                  <span className="text-muted-foreground/50">·</span>
+                                  <span className="truncate max-w-32">
+                                    {task.workspaceName}
+                                  </span>
+                                </div>
+
+                                {task.dueDate && (
+                                  <div className="flex items-center gap-1 text-[10px] px-2 py-1 rounded shrink-0 text-muted-foreground">
+                                    <CalendarDays className="w-3 h-3" />
+                                    <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                                  </div>
+                                )}
+
+                                {task.priority && task.priority !== "no-priority" && (
+                                  <div className="shrink-0 text-xs text-muted-foreground">
+                                    {task.priority}
+                                  </div>
+                                )}
+                              </Link>
+                            ))
+                          )}
+                        </div>
                       )}
                     </div>
-                    <div className="col-span-1 text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        <UserRound className="size-3" />
-                        {task.priority ?? "-"}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </CardContent>
-            </Card>
+                  );
+                })}
+              </div>
+            </div>
           )}
+          </div>
         </div>
       </WorkspaceLayout>
     </>

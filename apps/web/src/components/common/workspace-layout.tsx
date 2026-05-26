@@ -1,24 +1,24 @@
-import type { ReactNode } from "react";
 import AiTaskImportButton from "@/components/common/header/ai-task-import-button";
 import Layout from "@/components/common/layout";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { KbdSequence } from "@/components/ui/kbd";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { shortcuts } from "@/constants/shortcuts";
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { cn } from "@/lib/cn";
+import type { ReactNode } from "react";
 
 type WorkspaceLayoutProps = {
   title: string;
@@ -26,6 +26,7 @@ type WorkspaceLayoutProps = {
   children: ReactNode;
   onCreateProject?: () => void;
   className?: string;
+  hideWorkspaceBreadcrumb?: boolean;
 };
 
 export default function WorkspaceLayout({
@@ -33,6 +34,7 @@ export default function WorkspaceLayout({
   headerActions,
   children,
   className,
+  hideWorkspaceBreadcrumb,
 }: WorkspaceLayoutProps) {
   const { data: workspace } = useActiveWorkspace();
 
@@ -62,14 +64,18 @@ export default function WorkspaceLayout({
             <div className="mx-1.5 h-4 w-px shrink-0 bg-border/80" />
             <Breadcrumb className="flex items-center gap-1 text-xs w-full">
               <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/">
-                    <span className="text-xs font-normal text-card-foreground">
-                      {workspace?.name}
-                    </span>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
+                {!hideWorkspaceBreadcrumb && (
+                  <>
+                    <BreadcrumbItem>
+                      <BreadcrumbLink href="/">
+                        <span className="text-xs font-normal text-card-foreground">
+                          {workspace?.name}
+                        </span>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                  </>
+                )}
                 <BreadcrumbItem>
                   <span className="text-xs font-normal text-card-foreground">
                     {title}
