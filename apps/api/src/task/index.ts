@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, ne } from "drizzle-orm";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { describeRoute, resolver, validator } from "hono-openapi";
@@ -101,7 +101,11 @@ const task = new Hono<{
         )
         .leftJoin(columnTable, eq(taskTable.columnId, columnTable.id))
         .where(
-          and(eq(taskTable.userId, userId), isNull(projectTable.archivedAt)),
+          and(
+            eq(taskTable.userId, userId),
+            isNull(projectTable.archivedAt),
+            ne(taskTable.status, "archived"),
+          ),
         )
         .orderBy(desc(taskTable.updatedAt));
 

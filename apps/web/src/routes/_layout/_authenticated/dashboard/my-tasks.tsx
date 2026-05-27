@@ -341,6 +341,7 @@ function RouteComponent() {
     const q = query.trim().toLowerCase();
 
     const list = tasks.filter((task) => {
+      if (task.status === "archived") return false;
       const bucket = normalizeStatus(task);
       if (hideDone && bucket === "done") return false;
 

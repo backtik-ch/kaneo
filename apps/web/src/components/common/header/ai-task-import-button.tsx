@@ -166,7 +166,11 @@ export default function AiTaskImportButton() {
                     {plan.projectName} ({plan.projectSlug})
                   </span>
                 </div>
-                <div className="mt-3 max-w-md">
+                <div>
+                  <span className="text-muted-foreground">Tasks: </span>
+                  <span className="font-medium">{plan.tasks.length}</span>
+                </div>
+                <div className="mt-3">
                   <span className="mb-1 block text-muted-foreground text-xs">
                     Corriger le projet si besoin
                   </span>
@@ -193,10 +197,6 @@ export default function AiTaskImportButton() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Tasks: </span>
-                  <span className="font-medium">{plan.tasks.length}</span>
                 </div>
               </div>
 
