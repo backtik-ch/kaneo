@@ -1,22 +1,18 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { Loader2, WandSparkles } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogPopup,
-  DialogTitle,
+    Dialog,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogPopup,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { TaskToImport } from "@/fetchers/task/import-tasks";
@@ -24,6 +20,10 @@ import type { ImportTasksFromTextResponse } from "@/fetchers/task/import-tasks-f
 import useImportTasks from "@/hooks/mutations/task/use-import-tasks";
 import useImportTasksFromText from "@/hooks/mutations/task/use-import-tasks-from-text";
 import { toast } from "@/lib/toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { Loader2, WandSparkles, X } from "lucide-react";
+import { useRef, useState } from "react";
 
 export default function AiTaskImportButton() {
   const navigate = useNavigate();
@@ -38,6 +38,7 @@ export default function AiTaskImportButton() {
     useImportTasksFromText();
   const { mutateAsync: importTasksMutation, isPending: isImporting } =
     useImportTasks();
+  const importingRef = useRef(false);
 
   const isPending = isAnalyzing || isImporting;
   const selectedProjectOption = plan?.availableProjects.find(
@@ -45,6 +46,7 @@ export default function AiTaskImportButton() {
   );
 
   const handleAnalyze = async () => {
+    if (isAnalyzing) return;
     if (notes.trim().length < 10) {
       toast.error("Add a bit more detail before importing");
       return;
@@ -62,8 +64,15 @@ export default function AiTaskImportButton() {
     }
   };
 
-  const handleConfirmImport = async () => {
+  const handleRemoveTask = (index: number) => {
     if (!plan) return;
+    const updatedTasks = plan.tasks.filter((_, i) => i !== index);
+    setPlan({ ...plan, tasks: updatedTasks });
+  };
+
+  const handleConfirmImport = async () => {
+    if (!plan || isImporting || importingRef.current) return;
+    importingRef.current = true;
 
     const finalProjectId = selectedProjectId ?? plan.projectId;
     const selectedProject =
@@ -80,9 +89,6 @@ export default function AiTaskImportButton() {
         tasks: plan.tasks as TaskToImport[],
       });
       await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["tasks", projectId],
-        }),
         queryClient.invalidateQueries({
           queryKey: ["project", projectId],
         }),
@@ -110,6 +116,7 @@ export default function AiTaskImportButton() {
         },
       });
     } catch (error) {
+      importingRef.current = false;
       toast.error("Import failed. Check Gemini config or input text.");
       console.error(error);
     }
@@ -194,12 +201,19 @@ export default function AiTaskImportButton() {
               </div>
 
               <div className="max-h-84 space-y-2 overflow-auto pr-1">
-                {plan.tasks.map((task) => (
+                {plan.tasks.map((task, index) => (
                   <div
                     key={`${task.title}-${task.status}-${task.priority ?? "low"}-${task.description ?? ""}`}
-                    className="rounded-lg border border-border bg-background p-3"
+                    className="group relative rounded-lg border border-border bg-background p-3"
                   >
-                    <div className="text-sm font-medium">{task.title}</div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTask(index)}
+                      className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-sm opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
+                    >
+                      <X className="size-3.5 text-muted-foreground" />
+                    </button>
+                    <div className="pr-6 text-sm font-medium">{task.title}</div>
                     <div className="mt-1 line-clamp-3 text-xs text-muted-foreground">
                       {task.description || "No description"}
                     </div>
@@ -237,7 +251,7 @@ export default function AiTaskImportButton() {
             ) : null}
             <Button
               onClick={plan ? handleConfirmImport : handleAnalyze}
-              disabled={isPending}
+              disabled={isPending || (plan !== null && plan.tasks.length === 0)}
             >
               {isPending ? (
                 <>
