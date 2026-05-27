@@ -1,23 +1,23 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { Hono } from "hono";
-import { describeRoute, resolver, validator } from "hono-openapi";
 import { HTTPException } from "hono/http-exception";
+import { describeRoute, resolver, validator } from "hono-openapi";
 import * as v from "valibot";
 import db from "../database";
 import {
-    assetTable,
-    columnTable,
-    projectTable,
-    taskTable,
-    workspaceTable,
-    workspaceUserTable,
+  assetTable,
+  columnTable,
+  projectTable,
+  taskTable,
+  workspaceTable,
+  workspaceUserTable,
 } from "../database/schema";
 import { taskSchema } from "../schemas";
 import {
-    assertTaskImageKeyMatchesContext,
-    createTaskImageUploadUrl,
-    isImageContentType,
-    validateTaskAssetUploadInput,
+  assertTaskImageKeyMatchesContext,
+  createTaskImageUploadUrl,
+  isImageContentType,
+  validateTaskAssetUploadInput,
 } from "../storage/s3";
 import { workspaceAccess } from "../utils/workspace-access-middleware";
 import bulkUpdateTasks from "./controllers/bulk-update-tasks";
@@ -101,10 +101,7 @@ const task = new Hono<{
         )
         .leftJoin(columnTable, eq(taskTable.columnId, columnTable.id))
         .where(
-          and(
-            eq(taskTable.userId, userId),
-            isNull(projectTable.archivedAt),
-          ),
+          and(eq(taskTable.userId, userId), isNull(projectTable.archivedAt)),
         )
         .orderBy(desc(taskTable.updatedAt));
 

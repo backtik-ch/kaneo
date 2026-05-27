@@ -1,18 +1,22 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { Loader2, WandSparkles, X } from "lucide-react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-    Dialog,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogPopup,
-    DialogTitle,
+  Dialog,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogPopup,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { TaskToImport } from "@/fetchers/task/import-tasks";
@@ -20,10 +24,6 @@ import type { ImportTasksFromTextResponse } from "@/fetchers/task/import-tasks-f
 import useImportTasks from "@/hooks/mutations/task/use-import-tasks";
 import useImportTasksFromText from "@/hooks/mutations/task/use-import-tasks-from-text";
 import { toast } from "@/lib/toast";
-import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
-import { Loader2, WandSparkles, X } from "lucide-react";
-import { useRef, useState } from "react";
 
 export default function AiTaskImportButton() {
   const navigate = useNavigate();
