@@ -1,13 +1,44 @@
+import {
+  closestCorners,
+  DndContext,
+  type DragEndEvent,
+  DragOverlay,
+  type DragStartEvent,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useQueries } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  Archive,
+  CalendarDays,
+  ChevronRight,
+  CircleCheck,
+  EyeOff,
+  Layers,
+  List as ListIcon,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import WorkspaceLayout from "@/components/common/workspace-layout";
 import PageTitle from "@/components/page-title";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import getColumns from "@/fetchers/column/get-columns";
 import { useUpdateTaskStatus } from "@/hooks/mutations/task/use-update-task-status";
@@ -16,37 +47,6 @@ import { cn } from "@/lib/cn";
 import { getColumnIcon } from "@/lib/column";
 import { toast } from "@/lib/toast";
 import type Task from "@/types/task";
-import {
-    closestCorners,
-    DndContext,
-    type DragEndEvent,
-    DragOverlay,
-    type DragStartEvent,
-    KeyboardSensor,
-    MouseSensor,
-    TouchSensor,
-    useDroppable,
-    useSensor,
-    useSensors,
-} from "@dnd-kit/core";
-import {
-    SortableContext,
-    useSortable,
-    verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { useQueries } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-    Archive,
-    CalendarDays,
-    ChevronRight,
-    CircleCheck,
-    EyeOff,
-    Layers,
-    List as ListIcon,
-} from "lucide-react";
-import { useMemo, useState } from "react";
 
 export const Route = createFileRoute(
   "/_layout/_authenticated/dashboard/my-tasks",
@@ -623,7 +623,11 @@ function RouteComponent() {
 
                   <button
                     type="button"
-                    title={hideDone ? "Afficher les terminees" : "Masquer les terminees"}
+                    title={
+                      hideDone
+                        ? "Afficher les terminees"
+                        : "Masquer les terminees"
+                    }
                     className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs font-medium transition-colors ${
                       hideDone
                         ? "border-border bg-accent text-foreground"
@@ -637,7 +641,9 @@ function RouteComponent() {
 
                   <button
                     type="button"
-                    title={hideBacklog ? "Afficher le backlog" : "Masquer le backlog"}
+                    title={
+                      hideBacklog ? "Afficher le backlog" : "Masquer le backlog"
+                    }
                     className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs font-medium transition-colors ${
                       hideBacklog
                         ? "border-border bg-accent text-foreground"
