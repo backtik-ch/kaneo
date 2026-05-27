@@ -1,41 +1,13 @@
-import {
-  closestCorners,
-  DndContext,
-  type DragEndEvent,
-  DragOverlay,
-  type DragStartEvent,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useDroppable,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { useQueries } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  CalendarDays,
-  ChevronRight,
-  Layers,
-  List as ListIcon,
-} from "lucide-react";
-import { useMemo, useState } from "react";
 import WorkspaceLayout from "@/components/common/workspace-layout";
 import PageTitle from "@/components/page-title";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 import getColumns from "@/fetchers/column/get-columns";
 import { useUpdateTaskStatus } from "@/hooks/mutations/task/use-update-task-status";
@@ -44,6 +16,37 @@ import { cn } from "@/lib/cn";
 import { getColumnIcon } from "@/lib/column";
 import { toast } from "@/lib/toast";
 import type Task from "@/types/task";
+import {
+    closestCorners,
+    DndContext,
+    type DragEndEvent,
+    DragOverlay,
+    type DragStartEvent,
+    KeyboardSensor,
+    MouseSensor,
+    TouchSensor,
+    useDroppable,
+    useSensor,
+    useSensors,
+} from "@dnd-kit/core";
+import {
+    SortableContext,
+    useSortable,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useQueries } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+    Archive,
+    CalendarDays,
+    ChevronRight,
+    CircleCheck,
+    EyeOff,
+    Layers,
+    List as ListIcon,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 
 export const Route = createFileRoute(
   "/_layout/_authenticated/dashboard/my-tasks",
@@ -278,6 +281,7 @@ function RouteComponent() {
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [query, _setQuery] = useState("");
   const [hideDone, setHideDone] = useState(true);
+  const [hideBacklog, setHideBacklog] = useState(true);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [workspaceFilter, setWorkspaceFilter] = useState("all");
   const [projectFilter, setProjectFilter] = useState("all");
@@ -344,6 +348,7 @@ function RouteComponent() {
       if (task.status === "archived") return false;
       const bucket = normalizeStatus(task);
       if (hideDone && bucket === "done") return false;
+      if (hideBacklog && bucket === "backlog") return false;
 
       if (workspaceFilter !== "all" && task.workspaceName !== workspaceFilter) {
         return false;
@@ -407,6 +412,7 @@ function RouteComponent() {
     tasks,
     query,
     hideDone,
+    hideBacklog,
     workspaceFilter,
     projectFilter,
     priorityFilter,
@@ -617,14 +623,30 @@ function RouteComponent() {
 
                   <button
                     type="button"
-                    className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors ${
+                    title={hideDone ? "Afficher les terminees" : "Masquer les terminees"}
+                    className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs font-medium transition-colors ${
                       hideDone
                         ? "border-border bg-accent text-foreground"
                         : "border-border bg-background text-muted-foreground hover:bg-accent/60 hover:text-foreground"
                     }`}
                     onClick={() => setHideDone((value) => !value)}
                   >
-                    {hideDone ? "Terminees masquees" : "Afficher terminees"}
+                    <CircleCheck className="size-3.5" />
+                    {hideDone && <EyeOff className="size-3" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    title={hideBacklog ? "Afficher le backlog" : "Masquer le backlog"}
+                    className={`inline-flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs font-medium transition-colors ${
+                      hideBacklog
+                        ? "border-border bg-accent text-foreground"
+                        : "border-border bg-background text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                    }`}
+                    onClick={() => setHideBacklog((value) => !value)}
+                  >
+                    <Archive className="size-3.5" />
+                    {hideBacklog && <EyeOff className="size-3" />}
                   </button>
 
                   <span className="text-muted-foreground text-[11px] ml-1">
@@ -695,7 +717,9 @@ function RouteComponent() {
                 >
                   <div className="flex h-full flex-1 gap-4 overflow-x-visible pb-4">
                     {BUCKETS.filter(
-                      (bucket) => !(hideDone && bucket.id === "done"),
+                      (bucket) =>
+                        !(hideDone && bucket.id === "done") &&
+                        !(hideBacklog && bucket.id === "backlog"),
                     ).map((bucket) => (
                       <div
                         key={bucket.id}
@@ -754,7 +778,9 @@ function RouteComponent() {
               <div className="w-full h-full overflow-auto bg-muted/20">
                 <div className="divide-y divide-border/50">
                   {BUCKETS.filter(
-                    (bucket) => !(hideDone && bucket.id === "done"),
+                    (bucket) =>
+                      !(hideDone && bucket.id === "done") &&
+                      !(hideBacklog && bucket.id === "backlog"),
                   ).map((bucket) => {
                     const bucketTasks = grouped[bucket.id];
 
