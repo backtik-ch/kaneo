@@ -15,6 +15,12 @@ type TaskExternalLink = {
   metadata: Record<string, unknown> | null;
 };
 
+type ParentTask = {
+  id: string;
+  title: string;
+  number: number | null;
+};
+
 type Task = {
   id: string;
   title: string;
@@ -35,6 +41,7 @@ type Task = {
   columnId?: string | null;
   labels?: TaskLabel[];
   externalLinks?: TaskExternalLink[];
+  parentTask?: ParentTask | null;
 };
 
 export default Task;

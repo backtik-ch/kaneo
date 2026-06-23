@@ -227,6 +227,19 @@ function TaskCard({ task }: TaskCardProps) {
               </div>
             )}
 
+            {task.parentTask && (
+              <div className="mb-2 flex min-w-0 items-center gap-1.5 pr-6 text-[10px] leading-4 text-muted-foreground">
+                {project?.slug && task.parentTask.number != null && (
+                  <span className="shrink-0 rounded border border-border/70 bg-muted/55 px-1.5 py-0.5 font-mono font-medium">
+                    {project.slug}-{task.parentTask.number}
+                  </span>
+                )}
+                <span className="min-w-0 truncate font-medium">
+                  {task.parentTask.title}
+                </span>
+              </div>
+            )}
+
             <div className="mb-2.5 pr-6">
               <div
                 className="overflow-hidden break-words text-sm leading-5 font-medium text-foreground/95"

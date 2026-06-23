@@ -211,9 +211,23 @@ function TaskRow({ task, projectSlug }: TaskRowProps) {
 
             <div className="flex-1 min-w-0 flex items-center gap-2">
               <div className="flex items-center gap-2 justify-between w-full">
-                <span className="text-sm text-foreground truncate">
-                  {task.title}
-                </span>
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="min-w-0 truncate text-sm text-foreground">
+                    {task.title}
+                  </span>
+                  {task.parentTask && (
+                    <span className="flex min-w-0 max-w-[45%] items-center gap-1.5 text-[10px] leading-4 text-muted-foreground">
+                      {task.parentTask.number != null && (
+                        <span className="shrink-0 rounded border border-border/70 bg-muted/55 px-1.5 py-0.5 font-mono font-medium">
+                          {projectSlug}-{task.parentTask.number}
+                        </span>
+                      )}
+                      <span className="min-w-0 truncate font-medium">
+                        {task.parentTask.title}
+                      </span>
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-center gap-1">
                   {showLabels && <TaskCardLabels taskId={task.id} />}
 

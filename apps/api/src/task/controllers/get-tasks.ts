@@ -16,6 +16,7 @@ import {
   externalLinkTable,
   labelTable,
   projectTable,
+  taskRelationTable,
   taskTable,
   userTable,
 } from "../../database/schema";
@@ -173,6 +174,22 @@ async function getTasks(projectId: string, options: GetTasksOptions = {}) {
           .where(inArray(externalLinkTable.taskId, taskIds))
       : [];
 
+  const parentRelationsData =
+    taskIds.length > 0
+      ? await db
+          .select({
+            sourceTaskId: taskRelationTable.sourceTaskId,
+            targetTaskId: taskRelationTable.targetTaskId,
+          })
+          .from(taskRelationTable)
+          .where(
+            and(
+              eq(taskRelationTable.relationType, "subtask"),
+              inArray(taskRelationTable.targetTaskId, taskIds),
+            ),
+          )
+      : [];
+
   const taskLabelsMap = new Map<
     string,
     Array<{ id: string; name: string; color: string }>
@@ -215,6 +232,37 @@ async function getTasks(projectId: string, options: GetTasksOptions = {}) {
     });
   }
 
+  const parentTaskIds = [
+    ...new Set(parentRelationsData.map((relation) => relation.sourceTaskId)),
+  ];
+
+  const parentTasksData =
+    parentTaskIds.length > 0
+      ? await db
+          .select({
+            id: taskTable.id,
+            title: taskTable.title,
+            number: taskTable.number,
+          })
+          .from(taskTable)
+          .where(inArray(taskTable.id, parentTaskIds))
+      : [];
+
+  const parentTasksById = new Map(
+    parentTasksData.map((task) => [task.id, task]),
+  );
+  const parentTaskByTaskId = new Map<
+    string,
+    { id: string; title: string; number: number | null }
+  >();
+
+  for (const relation of parentRelationsData) {
+    const parentTask = parentTasksById.get(relation.sourceTaskId);
+    if (parentTask) {
+      parentTaskByTaskId.set(relation.targetTaskId, parentTask);
+    }
+  }
+
   const projectColumns = await db
     .select()
     .from(columnTable)
@@ -232,6 +280,7 @@ async function getTasks(projectId: string, options: GetTasksOptions = {}) {
         ...task,
         labels: taskLabelsMap.get(task.id) || [],
         externalLinks: taskExternalLinksMap.get(task.id) || [],
+        parentTask: parentTaskByTaskId.get(task.id) ?? null,
       })),
   }));
 
@@ -241,6 +290,7 @@ async function getTasks(projectId: string, options: GetTasksOptions = {}) {
       ...task,
       labels: taskLabelsMap.get(task.id) || [],
       externalLinks: taskExternalLinksMap.get(task.id) || [],
+      parentTask: parentTaskByTaskId.get(task.id) ?? null,
     }));
 
   const plannedTasks = paginatedTasks
@@ -249,6 +299,7 @@ async function getTasks(projectId: string, options: GetTasksOptions = {}) {
       ...task,
       labels: taskLabelsMap.get(task.id) || [],
       externalLinks: taskExternalLinksMap.get(task.id) || [],
+      parentTask: parentTaskByTaskId.get(task.id) ?? null,
     }));
 
   return {
