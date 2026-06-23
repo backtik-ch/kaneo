@@ -1,35 +1,22 @@
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { useNavigate } from "@tanstack/react-router";
-import { format } from "date-fns";
 import {
-  Calendar,
-  CalendarClock,
-  CalendarX,
-  GitMerge,
-  GitPullRequest,
-} from "lucide-react";
-import { type CSSProperties, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
-import {
-  AlertDialog,
-  AlertDialogClose,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogClose,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
 } from "@/components/ui/preview-card";
 import { useDeleteTask } from "@/hooks/mutations/task/use-delete-task";
 import useExternalLinks from "@/hooks/queries/external-link/use-external-links";
-import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { useGetActiveWorkspaceUsers } from "@/hooks/queries/workspace-users/use-get-active-workspace-users";
+import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { dueDateStatusColors, getDueDateStatus } from "@/lib/due-date-status";
 import { getPriorityIcon } from "@/lib/priority";
 import { toast } from "@/lib/toast";
@@ -38,6 +25,19 @@ import useBulkSelectionStore from "@/store/bulk-selection";
 import useProjectStore from "@/store/project";
 import { useUserPreferencesStore } from "@/store/user-preferences";
 import type Task from "@/types/task";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useNavigate } from "@tanstack/react-router";
+import { format } from "date-fns";
+import {
+    Calendar,
+    CalendarClock,
+    CalendarX,
+    GitMerge,
+    GitPullRequest,
+} from "lucide-react";
+import { type CSSProperties, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
 import { ContextMenu, ContextMenuTrigger } from "../ui/context-menu";
 import TaskCardContextMenuContent from "./task-card-context-menu/task-card-context-menu-content";
@@ -227,19 +227,6 @@ function TaskCard({ task }: TaskCardProps) {
               </div>
             )}
 
-            {task.parentTask && (
-              <div className="mb-2 flex min-w-0 items-center gap-1.5 pr-6 text-[10px] leading-4 text-muted-foreground">
-                {project?.slug && task.parentTask.number != null && (
-                  <span className="shrink-0 rounded border border-border/70 bg-muted/55 px-1.5 py-0.5 font-mono font-medium">
-                    {project.slug}-{task.parentTask.number}
-                  </span>
-                )}
-                <span className="min-w-0 truncate font-medium">
-                  {task.parentTask.title}
-                </span>
-              </div>
-            )}
-
             <div className="mb-2.5 pr-6">
               <div
                 className="overflow-hidden break-words text-sm leading-5 font-medium text-foreground/95"
@@ -254,6 +241,19 @@ function TaskCard({ task }: TaskCardProps) {
                 {task.title}
               </div>
             </div>
+
+            {task.parentTask && (
+              <div className="mb-2 flex min-w-0 items-center gap-1.5 pr-6 text-[10px] leading-4 text-muted-foreground">
+                {project?.slug && task.parentTask.number != null && (
+                  <span className="shrink-0 rounded border border-border/70 bg-muted/55 px-1.5 py-0.5 font-mono font-medium">
+                    {project.slug}-{task.parentTask.number}
+                  </span>
+                )}
+                <span className="min-w-0 truncate font-medium">
+                  {task.parentTask.title}
+                </span>
+              </div>
+            )}
 
             {showLabels && (
               <div className="mb-2.5">
