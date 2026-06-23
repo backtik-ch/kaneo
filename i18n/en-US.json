@@ -1533,15 +1533,20 @@
 			"allAssignees": "All assignees",
 			"allDueDates": "All due dates",
 			"allLabels": "All labels",
+			"showSubtasks": "Show subtasks",
+			"hideSubtasks": "Hide subtasks",
+			"subtasksHidden": "hidden",
 			"selectedCount": "{{count}} selected",
 			"subjects": {
 				"status": "Status",
 				"priority": "Priority",
 				"assignee": "Assignee",
 				"dueDate": "Due date",
-				"labels": "Labels"
+				"labels": "Labels",
+				"subtasks": "Subtasks"
 			},
 			"operators": {
+				"is": "is",
 				"isAnyOf": "is any of",
 				"includeAnyOf": "include any of"
 			}

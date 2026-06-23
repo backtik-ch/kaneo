@@ -1531,15 +1531,20 @@
 			"allAssignees": "Όλοι οι ανατεθειμένοι",
 			"allDueDates": "Όλες οι ημερομηνίες λήξης",
 			"allLabels": "Όλες οι ετικέτες",
+			"showSubtasks": "Εμφάνιση υποεργασιών",
+			"hideSubtasks": "Απόκρυψη υποεργασιών",
+			"subtasksHidden": "κρυφές",
 			"selectedCount": "{{count}} επιλεγμένα",
 			"subjects": {
 				"status": "Κατάσταση",
 				"priority": "Προτεραιότητα",
 				"assignee": "Ανατεθειμένος",
 				"dueDate": "Ημερομηνία λήξης",
-				"labels": "Ετικέτες"
+				"labels": "Ετικέτες",
+				"subtasks": "Υποεργασίες"
 			},
 			"operators": {
+				"is": "είναι",
 				"isAnyOf": "είναι ένα από",
 				"includeAnyOf": "περιλαμβάνει κάποιο από"
 			}

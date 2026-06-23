@@ -1528,15 +1528,20 @@
 			"allAssignees": "Усі виконавці",
 			"allDueDates": "Усі дати завершення",
 			"allLabels": "Усі мітки",
+			"showSubtasks": "Показати підзавдання",
+			"hideSubtasks": "Сховати підзавдання",
+			"subtasksHidden": "сховані",
 			"selectedCount": "{{count}} обрано",
 			"subjects": {
 				"status": "Статус",
 				"priority": "Пріоритет",
 				"assignee": "Виконавець",
 				"dueDate": "Дата завершення",
-				"labels": "Мітки"
+				"labels": "Мітки",
+				"subtasks": "Підзавдання"
 			},
 			"operators": {
+				"is": "є",
 				"isAnyOf": "є будь-яким з",
 				"includeAnyOf": "включає будь-який з"
 			}

@@ -10,6 +10,7 @@ export type BoardFilters = {
   assignee: string[] | null;
   dueDate: string[] | null;
   labels: string[] | null;
+  showSubtasks: boolean;
 };
 
 export const DUE_DATE_FILTER_VALUES = {
@@ -24,6 +25,7 @@ const DEFAULT_FILTERS: BoardFilters = {
   assignee: null,
   dueDate: null,
   labels: null,
+  showSubtasks: true,
 };
 
 const FILTER_KEYS: Array<keyof BoardFilters> = [
@@ -32,6 +34,7 @@ const FILTER_KEYS: Array<keyof BoardFilters> = [
   "assignee",
   "dueDate",
   "labels",
+  "showSubtasks",
 ];
 
 function normalizeFilters(raw: unknown): BoardFilters {
@@ -47,6 +50,8 @@ function normalizeFilters(raw: unknown): BoardFilters {
     if (Array.isArray(value)) {
       const values = value.filter((v): v is string => typeof v === "string");
       normalized[key] = values.length > 0 ? values : null;
+    } else if (key === "showSubtasks" && typeof value === "boolean") {
+      normalized.showSubtasks = value;
     }
   }
 
@@ -85,6 +90,10 @@ export function useTaskFilters(
 
   const filterTasks = (tasks: Task[]): Task[] => {
     return tasks.filter((task) => {
+      if (!filters.showSubtasks && task.parentTask) {
+        return false;
+      }
+
       if (
         filters.status &&
         filters.status.length > 0 &&
@@ -168,8 +177,8 @@ export function useTaskFilters(
       }
     : null;
 
-  const hasActiveFilters = Object.values(filters).some(
-    (filter) => filter !== null,
+  const hasActiveFilters = Object.entries(filters).some(([key, filter]) =>
+    key === "showSubtasks" ? filter === false : filter !== null,
   );
 
   const clearFilters = () => {

@@ -1533,15 +1533,20 @@
 			"allAssignees": "Alle Zugewiesenen",
 			"allDueDates": "Alle Fälligkeitsdaten",
 			"allLabels": "Alle Labels",
+			"showSubtasks": "Unteraufgaben anzeigen",
+			"hideSubtasks": "Unteraufgaben ausblenden",
+			"subtasksHidden": "ausgeblendet",
 			"selectedCount": "{{count}} ausgewählt",
 			"subjects": {
 				"status": "Status",
 				"priority": "Priorität",
 				"assignee": "Zugewiesen",
 				"dueDate": "Fälligkeitsdatum",
-				"labels": "Labels"
+				"labels": "Labels",
+				"subtasks": "Unteraufgaben"
 			},
 			"operators": {
+				"is": "ist",
 				"isAnyOf": "ist einer von",
 				"includeAnyOf": "enthält einen von"
 			}

@@ -1531,15 +1531,20 @@
 			"allAssignees": "Tous les assignés",
 			"allDueDates": "Toutes les dates d'échéance",
 			"allLabels": "Tous les labels",
+			"showSubtasks": "Afficher les sous-tâches",
+			"hideSubtasks": "Masquer les sous-tâches",
+			"subtasksHidden": "masquées",
 			"selectedCount": "{{count}} sélectionné",
 			"subjects": {
 				"status": "Statut",
 				"priority": "Priorité",
 				"assignee": "Assigné",
 				"dueDate": "Date d'échéance",
-				"labels": "Labels"
+				"labels": "Labels",
+				"subtasks": "Sous-tâches"
 			},
 			"operators": {
+				"is": "est",
 				"isAnyOf": "est l'un des",
 				"includeAnyOf": "inclut l'un des"
 			}

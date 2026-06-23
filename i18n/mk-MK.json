@@ -1531,15 +1531,20 @@
 			"allAssignees": "Сите доделени",
 			"allDueDates": "Сите крајни рокови",
 			"allLabels": "Сите етикети",
+			"showSubtasks": "Прикажи подзадачи",
+			"hideSubtasks": "Сокриј подзадачи",
+			"subtasksHidden": "сокриени",
 			"selectedCount": "{{count}} избрани",
 			"subjects": {
 				"status": "Статус",
 				"priority": "Приоритет",
 				"assignee": "Доделен",
 				"dueDate": "Краен рок",
-				"labels": "Етикети"
+				"labels": "Етикети",
+				"subtasks": "Подзадачи"
 			},
 			"operators": {
+				"is": "е",
 				"isAnyOf": "е било кој од",
 				"includeAnyOf": "вклучува било кој од"
 			}

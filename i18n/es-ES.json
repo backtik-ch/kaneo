@@ -1305,15 +1305,20 @@
 			"allAssignees": "Todos los asignados",
 			"allDueDates": "Todas las fechas de vencimiento",
 			"allLabels": "Todas las etiquetas",
+			"showSubtasks": "Mostrar subtareas",
+			"hideSubtasks": "Ocultar subtareas",
+			"subtasksHidden": "ocultas",
 			"selectedCount": "{{count}} selecionadas",
 			"subjects": {
 				"status": "Estado",
 				"priority": "Prioridad",
 				"assignee": "Asignado",
 				"dueDate": "Fecha de vencimiento",
-				"labels": "Etiquetas"
+				"labels": "Etiquetas",
+				"subtasks": "Subtareas"
 			},
 			"operators": {
+				"is": "es",
 				"isAnyOf": "es alguno de",
 				"includeAnyOf": "incluye alguno de"
 			}

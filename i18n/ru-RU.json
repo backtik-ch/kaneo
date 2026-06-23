@@ -1537,6 +1537,9 @@
 			"allAssignees": "Все исполнители",
 			"allDueDates": "Все сроки",
 			"allLabels": "Все метки",
+			"showSubtasks": "Показать подзадачи",
+			"hideSubtasks": "Скрыть подзадачи",
+			"subtasksHidden": "скрыты",
 			"selectedCount_one": "{{count}} выбран",
 			"selectedCount_few": "{{count}} выбрано",
 			"selectedCount_many": "{{count}} выбрано",
@@ -1546,9 +1549,11 @@
 				"priority": "Приоритет",
 				"assignee": "Исполнитель",
 				"dueDate": "Срок выполнения",
-				"labels": "Метки"
+				"labels": "Метки",
+				"subtasks": "Подзадачи"
 			},
 			"operators": {
+				"is": "—",
 				"isAnyOf": "любой из",
 				"includeAnyOf": "включает любой из"
 			}

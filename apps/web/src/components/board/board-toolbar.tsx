@@ -148,6 +148,7 @@ export default function BoardToolbar({
   const selectedPriorityIds = filters.priority ?? [];
   const selectedAssigneeIds = filters.assignee ?? [];
   const selectedDueDateFilters = filters.dueDate ?? [];
+  const showSubtasks = filters.showSubtasks;
 
   const getStatusDisplayName = (statusId: string) => {
     const column = project?.columns?.find((col) => col.id === statusId);
@@ -513,6 +514,40 @@ export default function BoardToolbar({
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
 
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="h-8 rounded-md text-sm">
+                    {t("tasks:boardFilters.subjects.subtasks")}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-56">
+                    <div className="grid grid-cols-1 gap-1 p-1">
+                      <button
+                        className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-left text-xs ${
+                          showSubtasks
+                            ? "bg-accent text-accent-foreground"
+                            : "text-foreground/90 hover:bg-accent/60 hover:text-foreground"
+                        }`}
+                        onClick={() => updateFilter("showSubtasks", true)}
+                        type="button"
+                      >
+                        <CheckSlot checked={showSubtasks} />
+                        {t("tasks:boardFilters.showSubtasks")}
+                      </button>
+                      <button
+                        className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-left text-xs ${
+                          !showSubtasks
+                            ? "bg-accent text-accent-foreground"
+                            : "text-foreground/90 hover:bg-accent/60 hover:text-foreground"
+                        }`}
+                        onClick={() => updateFilter("showSubtasks", false)}
+                        type="button"
+                      >
+                        <CheckSlot checked={!showSubtasks} />
+                        {t("tasks:boardFilters.hideSubtasks")}
+                      </button>
+                    </div>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+
                 {hasActiveFilters && (
                   <>
                     <DropdownMenuSeparator />
@@ -638,6 +673,15 @@ export default function BoardToolbar({
                   count: filters.labels.length,
                 })}
                 onClear={clearLabelFilters}
+              />
+            )}
+
+            {!showSubtasks && (
+              <ActiveFilterChip
+                subject={t("tasks:boardFilters.subjects.subtasks")}
+                operator={t("tasks:boardFilters.operators.is")}
+                value={t("tasks:boardFilters.subtasksHidden")}
+                onClear={() => updateFilter("showSubtasks", true)}
               />
             )}
           </div>

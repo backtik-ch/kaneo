@@ -1533,15 +1533,20 @@
 			"allAssignees": "모든 담당자",
 			"allDueDates": "모든 마감일",
 			"allLabels": "모든 라벨",
+			"showSubtasks": "하위 작업 표시",
+			"hideSubtasks": "하위 작업 숨기기",
+			"subtasksHidden": "숨김",
 			"selectedCount": "{{count}}개 선택됨",
 			"subjects": {
 				"status": "상태",
 				"priority": "우선순위",
 				"assignee": "담당자",
 				"dueDate": "마감일",
-				"labels": "라벨"
+				"labels": "라벨",
+				"subtasks": "하위 작업"
 			},
 			"operators": {
+				"is": "다음임",
 				"isAnyOf": "다음 중 하나",
 				"includeAnyOf": "다음 중 하나 포함"
 			}

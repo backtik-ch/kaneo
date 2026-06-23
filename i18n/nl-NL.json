@@ -1306,15 +1306,20 @@
 			"allAssignees": "Alle personen",
 			"allDueDates": "Alle einddatums",
 			"allLabels": "Alle labels",
+			"showSubtasks": "Subtaken tonen",
+			"hideSubtasks": "Subtaken verbergen",
+			"subtasksHidden": "verborgen",
 			"selectedCount": "{{count}} geselecteerd",
 			"subjects": {
 				"status": "Status",
 				"priority": "Prioriteit",
 				"assignee": "Toegewezen persoon",
 				"dueDate": "Einddatum",
-				"labels": "Labels"
+				"labels": "Labels",
+				"subtasks": "Subtaken"
 			},
 			"operators": {
+				"is": "is",
 				"isAnyOf": "is een van",
 				"includeAnyOf": "bevat een van"
 			}

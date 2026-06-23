@@ -5515,6 +5515,15 @@
 						"allLabels": {
 							"type": "string"
 						},
+						"showSubtasks": {
+							"type": "string"
+						},
+						"hideSubtasks": {
+							"type": "string"
+						},
+						"subtasksHidden": {
+							"type": "string"
+						},
 						"selectedCount": {
 							"type": "string"
 						},
@@ -5536,6 +5545,9 @@
 								},
 								"labels": {
 									"type": "string"
+								},
+								"subtasks": {
+									"type": "string"
 								}
 							},
 							"required": [
@@ -5543,13 +5555,17 @@
 								"priority",
 								"assignee",
 								"dueDate",
-								"labels"
+								"labels",
+								"subtasks"
 							]
 						},
 						"operators": {
 							"type": "object",
 							"additionalProperties": false,
 							"properties": {
+								"is": {
+									"type": "string"
+								},
 								"isAnyOf": {
 									"type": "string"
 								},
@@ -5557,7 +5573,7 @@
 									"type": "string"
 								}
 							},
-							"required": ["isAnyOf", "includeAnyOf"]
+							"required": ["is", "isAnyOf", "includeAnyOf"]
 						}
 					},
 					"required": [
@@ -5567,6 +5583,9 @@
 						"allAssignees",
 						"allDueDates",
 						"allLabels",
+						"showSubtasks",
+						"hideSubtasks",
+						"subtasksHidden",
 						"selectedCount",
 						"subjects",
 						"operators"

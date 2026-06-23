@@ -11,6 +11,7 @@ const DEFAULT_FILTERS: BoardFilters = {
   assignee: null,
   dueDate: null,
   labels: null,
+  showSubtasks: true,
 };
 
 const FILTER_KEYS: Array<keyof BoardFilters> = [
@@ -19,6 +20,7 @@ const FILTER_KEYS: Array<keyof BoardFilters> = [
   "assignee",
   "dueDate",
   "labels",
+  "showSubtasks",
 ];
 
 function normalizeFilters(raw: unknown): BoardFilters {
@@ -34,6 +36,8 @@ function normalizeFilters(raw: unknown): BoardFilters {
     if (Array.isArray(value)) {
       const values = value.filter((v): v is string => typeof v === "string");
       normalized[key] = values.length > 0 ? values : null;
+    } else if (key === "showSubtasks" && typeof value === "boolean") {
+      normalized.showSubtasks = value;
     }
   }
 
@@ -76,6 +80,10 @@ export function useTaskFiltersWithLabelsSupport(
       const normalizedTextQuery = textQuery?.trim().toLowerCase();
 
       return tasks.filter((task) => {
+        if (!filters.showSubtasks && task.parentTask) {
+          return false;
+        }
+
         if (normalizedTextQuery) {
           const title = task.title?.toLowerCase() ?? "";
           const description = task.description?.toLowerCase() ?? "";
@@ -189,8 +197,12 @@ export function useTaskFiltersWithLabelsSupport(
     };
   }, [project, filterTasks]);
 
-  const hasActiveFilters = Object.values(filters).some((filter) =>
-    Array.isArray(filter) ? filter.length > 0 : filter !== null,
+  const hasActiveFilters = Object.entries(filters).some(([key, filter]) =>
+    key === "showSubtasks"
+      ? filter === false
+      : Array.isArray(filter)
+        ? filter.length > 0
+        : filter !== null,
   );
 
   const clearFilters = () => {
