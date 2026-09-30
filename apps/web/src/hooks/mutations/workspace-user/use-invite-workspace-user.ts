@@ -1,6 +1,6 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { InviteCandidate } from "@/fetchers/workspace-user/get-invite-candidates";
 import { authClient } from "@/lib/auth-client";
-import queryClient from "@/query-client";
 
 type InviteWorkspaceUserRequest = {
   workspaceId: string;
@@ -10,6 +10,7 @@ type InviteWorkspaceUserRequest = {
 };
 
 function useInviteWorkspaceUser() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
       workspaceId,
@@ -30,7 +31,15 @@ function useInviteWorkspaceUser() {
 
       return data;
     },
-    onSuccess: (_, { workspaceId }) => {
+    onSuccess: (_, { workspaceId, email }) => {
+      const candidatesKey = ["workspace-invite-candidates", workspaceId];
+      queryClient.setQueryData<InviteCandidate[]>(candidatesKey, (candidates) =>
+        candidates?.filter(
+          (candidate) => candidate.email.toLowerCase() !== email.toLowerCase(),
+        ),
+      );
+      queryClient.invalidateQueries({ queryKey: candidatesKey });
+
       queryClient.invalidateQueries({
         queryKey: ["workspace-invites", workspaceId],
       });

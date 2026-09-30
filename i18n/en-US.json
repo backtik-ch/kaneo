@@ -1743,7 +1743,13 @@
 			"emailPlaceholder": "colleague@company.com",
 			"sendInvitation": "Send Invitation",
 			"success": "Invitation sent successfully",
-			"error": "Failed to invite team member"
+			"error": "Failed to invite team member",
+			"suggestionsTitle": "People from other workspaces",
+			"loadingSuggestions": "Loading people…",
+			"suggestionsError": "Could not load people from other workspaces.",
+			"retrySuggestions": "Try again",
+			"noSuggestions": "No people available to invite.",
+			"noMatchingSuggestions": "No people match your search."
 		},
 		"membersTable": {
 			"emptyTitle": "No team members yet",

@@ -1742,7 +1742,13 @@
 			"emailPlaceholder": "colleague@company.com",
 			"sendInvitation": "Надіслати запрошення",
 			"success": "Запрошення успішно надіслано",
-			"error": "Не вдалося запросити учасника команди"
+			"error": "Не вдалося запросити учасника команди",
+			"suggestionsTitle": "Люди з інших робочих просторів",
+			"loadingSuggestions": "Завантаження людей…",
+			"suggestionsError": "Не вдалося завантажити людей з інших робочих просторів.",
+			"retrySuggestions": "Спробувати ще раз",
+			"noSuggestions": "Немає доступних людей для запрошення.",
+			"noMatchingSuggestions": "За вашим запитом нікого не знайдено."
 		},
 		"membersTable": {
 			"emptyTitle": "Учасників команди ще немає",

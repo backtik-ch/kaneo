@@ -6340,6 +6340,24 @@
 						},
 						"error": {
 							"type": "string"
+						},
+						"suggestionsTitle": {
+							"type": "string"
+						},
+						"loadingSuggestions": {
+							"type": "string"
+						},
+						"suggestionsError": {
+							"type": "string"
+						},
+						"retrySuggestions": {
+							"type": "string"
+						},
+						"noSuggestions": {
+							"type": "string"
+						},
+						"noMatchingSuggestions": {
+							"type": "string"
 						}
 					},
 					"required": [
@@ -6348,7 +6366,13 @@
 						"emailPlaceholder",
 						"sendInvitation",
 						"success",
-						"error"
+						"error",
+						"suggestionsTitle",
+						"loadingSuggestions",
+						"suggestionsError",
+						"retrySuggestions",
+						"noSuggestions",
+						"noMatchingSuggestions"
 					]
 				},
 				"membersTable": {

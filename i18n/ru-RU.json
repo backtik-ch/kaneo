@@ -1784,7 +1784,13 @@
 			"emailPlaceholder": "colleague@company.com",
 			"sendInvitation": "Отправить приглашение",
 			"success": "Приглашение успешно отправлено",
-			"error": "Не удалось пригласить участника команды"
+			"error": "Не удалось пригласить участника команды",
+			"suggestionsTitle": "Люди из других рабочих пространств",
+			"loadingSuggestions": "Загрузка людей…",
+			"suggestionsError": "Не удалось загрузить людей из других рабочих пространств.",
+			"retrySuggestions": "Повторить",
+			"noSuggestions": "Нет доступных людей для приглашения.",
+			"noMatchingSuggestions": "По вашему запросу никто не найден."
 		},
 		"membersTable": {
 			"emptyTitle": "Участников команды пока нет",

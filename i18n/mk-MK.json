@@ -1741,7 +1741,13 @@
 			"emailPlaceholder": "kolega@kompanija.com",
 			"sendInvitation": "Испрати покана",
 			"success": "Поканата е успешно испратена",
-			"error": "Неуспешно поканување на член на тим"
+			"error": "Неуспешно поканување на член на тим",
+			"suggestionsTitle": "Луѓе од други работни простори",
+			"loadingSuggestions": "Се вчитуваат луѓето…",
+			"suggestionsError": "Не може да се вчитаат луѓето од други работни простори.",
+			"retrySuggestions": "Обиди се повторно",
+			"noSuggestions": "Нема достапни луѓе за поканување.",
+			"noMatchingSuggestions": "Нема луѓе што одговараат на пребарувањето."
 		},
 		"membersTable": {
 			"emptyTitle": "Нема членови на тим засега",

@@ -1515,7 +1515,13 @@
 			"emailPlaceholder": "compi@company.com",
 			"sendInvitation": "Enviar invitación",
 			"success": "Invitación enviada correctamente",
-			"error": "Error al invitar miembro al equipo"
+			"error": "Error al invitar miembro al equipo",
+			"suggestionsTitle": "Personas de otros espacios de trabajo",
+			"loadingSuggestions": "Cargando personas…",
+			"suggestionsError": "No se pudieron cargar las personas de otros espacios de trabajo.",
+			"retrySuggestions": "Reintentar",
+			"noSuggestions": "No hay personas disponibles para invitar.",
+			"noMatchingSuggestions": "Ninguna persona coincide con tu búsqueda."
 		},
 		"membersTable": {
 			"emptyTitle": "No hay miembros en el equipo aún",

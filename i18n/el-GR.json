@@ -1741,7 +1741,13 @@
 			"emailPlaceholder": "colleague@company.com",
 			"sendInvitation": "Αποστολή πρόσκλησης",
 			"success": "Η πρόσκληση στάλθηκε με επιτυχία",
-			"error": "Αποτυχία πρόσκλησης μέλους ομάδας"
+			"error": "Αποτυχία πρόσκλησης μέλους ομάδας",
+			"suggestionsTitle": "Άτομα από άλλους χώρους εργασίας",
+			"loadingSuggestions": "Φόρτωση ατόμων…",
+			"suggestionsError": "Δεν ήταν δυνατή η φόρτωση ατόμων από άλλους χώρους εργασίας.",
+			"retrySuggestions": "Δοκιμάστε ξανά",
+			"noSuggestions": "Δεν υπάρχουν διαθέσιμα άτομα για πρόσκληση.",
+			"noMatchingSuggestions": "Κανένα άτομο δεν ταιριάζει με την αναζήτησή σας."
 		},
 		"membersTable": {
 			"emptyTitle": "Δεν υπάρχουν ακόμα μέλη ομάδας",

@@ -1516,7 +1516,13 @@
 			"emailPlaceholder": "collega@bedrijf.nl",
 			"sendInvitation": "Uitnodiging versturen",
 			"success": "Uitnodiging succesvol verzonden",
-			"error": "Uitnodigen teamlid mislukt"
+			"error": "Uitnodigen teamlid mislukt",
+			"suggestionsTitle": "Personen uit andere werkruimtes",
+			"loadingSuggestions": "Personen laden…",
+			"suggestionsError": "Personen uit andere werkruimtes konden niet worden geladen.",
+			"retrySuggestions": "Opnieuw proberen",
+			"noSuggestions": "Geen personen beschikbaar om uit te nodigen.",
+			"noMatchingSuggestions": "Geen personen gevonden voor je zoekopdracht."
 		},
 		"membersTable": {
 			"emptyTitle": "Nog geen teamleden",

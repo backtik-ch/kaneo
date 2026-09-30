@@ -1743,7 +1743,13 @@
 			"emailPlaceholder": "kollege@firma.com",
 			"sendInvitation": "Einladung senden",
 			"success": "Einladung erfolgreich gesendet",
-			"error": "Teammitglied konnte nicht eingeladen werden"
+			"error": "Teammitglied konnte nicht eingeladen werden",
+			"suggestionsTitle": "Personen aus anderen Workspaces",
+			"loadingSuggestions": "Personen werden geladen…",
+			"suggestionsError": "Personen aus anderen Workspaces konnten nicht geladen werden.",
+			"retrySuggestions": "Erneut versuchen",
+			"noSuggestions": "Keine Personen zum Einladen verfügbar.",
+			"noMatchingSuggestions": "Keine Personen entsprechen Ihrer Suche."
 		},
 		"membersTable": {
 			"emptyTitle": "Noch keine Teammitglieder",
