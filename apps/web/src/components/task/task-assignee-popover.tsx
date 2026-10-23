@@ -12,6 +12,7 @@ import { ShortcutNumber } from "@/components/ui/shortcut-number";
 import { useUpdateTaskAssignee } from "@/hooks/mutations/task/use-update-task-assignee";
 import { useGetActiveWorkspaceUsers } from "@/hooks/queries/workspace-users/use-get-active-workspace-users";
 import { useNumberedShortcuts } from "@/hooks/use-numbered-shortcuts";
+import { getUserInitials } from "@/lib/get-user-initials";
 import { toast } from "@/lib/toast";
 import type Task from "@/types/task";
 
@@ -143,8 +144,8 @@ export default function TaskAssigneePopover({
             >
               <Avatar className="h-6 w-6">
                 <AvatarImage src={user.image ?? ""} alt={user.name || ""} />
-                <AvatarFallback className="text-xs font-medium border border-border/30">
-                  {user.name?.charAt(0).toUpperCase()}
+                <AvatarFallback className="font-mono text-xs font-medium border border-border/30">
+                  {getUserInitials(user.name)}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm truncate">{user.label}</span>

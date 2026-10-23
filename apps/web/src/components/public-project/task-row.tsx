@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { dueDateStatusColors, getDueDateStatus } from "@/lib/due-date-status";
 import { formatDateShort } from "@/lib/format";
+import { getUserInitials } from "@/lib/get-user-initials";
 import { getPriorityIcon } from "@/lib/priority";
 import type { ExternalLink } from "@/types/external-link";
 import type Task from "@/types/task";
@@ -56,8 +57,8 @@ export function PublicTaskRow({
                 src={task.assigneeImage ?? ""}
                 alt={task.assigneeName ?? ""}
               />
-              <AvatarFallback className="text-[10px] font-medium border border-border/30">
-                {task.assigneeName.charAt(0).toUpperCase()}
+              <AvatarFallback className="font-mono text-[10px] font-medium border border-border/30">
+                {getUserInitials(task.assigneeName)}
               </AvatarFallback>
             </Avatar>
             <span className="text-xs text-muted-foreground font-medium">

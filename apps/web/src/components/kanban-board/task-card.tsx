@@ -31,6 +31,7 @@ import useExternalLinks from "@/hooks/queries/external-link/use-external-links";
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { useGetActiveWorkspaceUsers } from "@/hooks/queries/workspace-users/use-get-active-workspace-users";
 import { dueDateStatusColors, getDueDateStatus } from "@/lib/due-date-status";
+import { getUserInitials } from "@/lib/get-user-initials";
 import { getPriorityIcon } from "@/lib/priority";
 import { toast } from "@/lib/toast";
 import queryClient from "@/query-client";
@@ -210,8 +211,8 @@ function TaskCard({ task }: TaskCardProps) {
                       src={assignee?.user?.image ?? ""}
                       alt={assignee?.user?.name || ""}
                     />
-                    <AvatarFallback className="text-xs font-medium border border-border/30">
-                      {assignee?.user?.name?.charAt(0).toUpperCase()}
+                    <AvatarFallback className="font-mono text-xs font-medium border border-border/30">
+                      {getUserInitials(assignee?.user?.name)}
                     </AvatarFallback>
                   </Avatar>
                 ) : (

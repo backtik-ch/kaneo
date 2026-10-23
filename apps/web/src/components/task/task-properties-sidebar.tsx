@@ -31,6 +31,7 @@ import { cn } from "@/lib/cn";
 import { getColumnIcon } from "@/lib/column";
 import { dueDateStatusColors, getDueDateStatus } from "@/lib/due-date-status";
 import { formatDateShort } from "@/lib/format";
+import { getUserInitials } from "@/lib/get-user-initials";
 import { getPriorityLabel, getStatusDisplayLabel } from "@/lib/i18n/domain";
 import { getPriorityIcon } from "@/lib/priority";
 import { toast } from "@/lib/toast";
@@ -232,8 +233,8 @@ export default function TaskPropertiesSidebar({
                           src={assignee?.user?.image ?? ""}
                           alt={assignee?.user?.name || ""}
                         />
-                        <AvatarFallback className="text-[9px] font-medium border border-border/30 flex-shrink-0 h-[16px] w-[16px]">
-                          {assignee?.user?.name?.charAt(0).toUpperCase()}
+                        <AvatarFallback className="font-mono text-[9px] font-medium border border-border/30 flex-shrink-0 h-[16px] w-[16px]">
+                          {getUserInitials(assignee?.user?.name)}
                         </AvatarFallback>
                       </Avatar>
                     ) : (
@@ -416,8 +417,8 @@ export default function TaskPropertiesSidebar({
                             src={assignee?.user?.image ?? ""}
                             alt={assignee?.user?.name || ""}
                           />
-                          <AvatarFallback className="text-[9px] font-medium border border-border/30 shrink-0 h-[16px] w-[16px]">
-                            {assignee?.user?.name?.charAt(0).toUpperCase()}
+                          <AvatarFallback className="font-mono text-[9px] font-medium border border-border/30 shrink-0 h-[16px] w-[16px]">
+                            {getUserInitials(assignee?.user?.name)}
                           </AvatarFallback>
                         </Avatar>
                       ) : (
@@ -603,8 +604,8 @@ export default function TaskPropertiesSidebar({
                             src={assignee?.user?.image ?? ""}
                             alt={assignee?.user?.name || ""}
                           />
-                          <AvatarFallback className="text-[9px] font-medium border border-border/30 shrink-0 h-[16px] w-[16px]">
-                            {assignee?.user?.name?.charAt(0).toUpperCase()}
+                          <AvatarFallback className="font-mono text-[9px] font-medium border border-border/30 shrink-0 h-[16px] w-[16px]">
+                            {getUserInitials(assignee?.user?.name)}
                           </AvatarFallback>
                         </Avatar>
                       ) : (

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { getColumnIcon } from "@/lib/column";
+import { getUserInitials } from "@/lib/get-user-initials";
 import type Task from "@/types/task";
 import SubtaskAssigneePopover from "./subtask-assignee-popover";
 import SubtaskStatusPopover from "./subtask-status-popover";
@@ -107,8 +108,8 @@ export default function SubtaskRow({
                       src={assignee?.user?.image ?? ""}
                       alt={assignee?.user?.name || ""}
                     />
-                    <AvatarFallback className="text-[9px] font-medium border border-border/30">
-                      {assignee?.user?.name?.charAt(0).toUpperCase()}
+                    <AvatarFallback className="font-mono text-[9px] font-medium border border-border/30">
+                      {getUserInitials(assignee?.user?.name)}
                     </AvatarFallback>
                   </Avatar>
                 ) : (

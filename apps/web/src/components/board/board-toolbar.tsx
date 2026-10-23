@@ -21,6 +21,7 @@ import {
   DUE_DATE_FILTER_VALUES,
 } from "@/hooks/use-task-filters";
 import { getColumnIcon } from "@/lib/column";
+import { getUserInitials } from "@/lib/get-user-initials";
 import { getPriorityLabel } from "@/lib/i18n/domain";
 import { getPriorityIcon } from "@/lib/priority";
 import type { SortConfig } from "@/lib/sort-tasks";
@@ -174,8 +175,8 @@ export default function BoardToolbar({
           src={member?.user?.image ?? ""}
           alt={member?.user?.name || ""}
         />
-        <AvatarFallback className="border border-border/30 text-[9px] font-medium">
-          {member?.user?.name?.charAt(0).toUpperCase() || "?"}
+        <AvatarFallback className="border border-border/30 font-mono text-[9px] font-medium">
+          {getUserInitials(member?.user?.name)}
         </AvatarFallback>
       </Avatar>
     );
@@ -402,8 +403,8 @@ export default function BoardToolbar({
                                 src={member.user?.image ?? ""}
                                 alt={member.user?.name || ""}
                               />
-                              <AvatarFallback className="border border-border/30 text-[10px] font-medium">
-                                {member.user?.name?.charAt(0).toUpperCase()}
+                              <AvatarFallback className="border border-border/30 font-mono text-[10px] font-medium">
+                                {getUserInitials(member.user?.name)}
                               </AvatarFallback>
                             </Avatar>
                             <span>{member.user?.name}</span>
