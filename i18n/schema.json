@@ -5972,6 +5972,70 @@
 						"noActionsFound",
 						"changeStatus"
 					]
+				},
+				"hierarchy": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"setParent": {
+							"type": "string"
+						},
+						"removeParent": {
+							"type": "string"
+						},
+						"linkChild": {
+							"type": "string"
+						},
+						"detach": {
+							"type": "string"
+						},
+						"selectParent": {
+							"type": "string"
+						},
+						"selectChild": {
+							"type": "string"
+						},
+						"search": {
+							"type": "string"
+						},
+						"empty": {
+							"type": "string"
+						},
+						"loading": {
+							"type": "string"
+						},
+						"loadError": {
+							"type": "string"
+						},
+						"retry": {
+							"type": "string"
+						},
+						"linkError": {
+							"type": "string"
+						},
+						"detachError": {
+							"type": "string"
+						},
+						"createChild": {
+							"type": "string"
+						}
+					},
+					"required": [
+						"setParent",
+						"removeParent",
+						"linkChild",
+						"detach",
+						"selectParent",
+						"selectChild",
+						"search",
+						"empty",
+						"loading",
+						"loadError",
+						"retry",
+						"linkError",
+						"detachError",
+						"createChild"
+					]
 				}
 			},
 			"required": [
@@ -6001,7 +6065,8 @@
 				"update",
 				"contextMenu",
 				"actions",
-				"bulk"
+				"bulk",
+				"hierarchy"
 			]
 		},
 		"invitations": {

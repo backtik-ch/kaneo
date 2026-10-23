@@ -1425,6 +1425,22 @@
 			"searchActions": "Buscar acciones...",
 			"noActionsFound": "No se han encontrado acciones.",
 			"changeStatus": "Cambiar estado"
+		},
+		"hierarchy": {
+			"setParent": "Definir tarea principal",
+			"removeParent": "Quitar tarea principal",
+			"linkChild": "Vincular tarea existente",
+			"detach": "Desvincular",
+			"selectParent": "Seleccionar tarea principal",
+			"selectChild": "Seleccionar subtarea existente",
+			"search": "Buscar por título o referencia…",
+			"empty": "No se encontraron tareas compatibles",
+			"loading": "Cargando tareas…",
+			"loadError": "No se pudieron cargar las tareas.",
+			"retry": "Reintentar",
+			"linkError": "No se pudo vincular esta tarea. Puede que ya tenga una tarea principal o que genere un ciclo.",
+			"detachError": "No se pudo eliminar el vínculo.",
+			"createChild": "Crear subtarea"
 		}
 	},
 	"invitations": {

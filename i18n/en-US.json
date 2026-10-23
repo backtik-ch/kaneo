@@ -1653,6 +1653,22 @@
 			"searchActions": "Search actions...",
 			"noActionsFound": "No actions found.",
 			"changeStatus": "Change Status"
+		},
+		"hierarchy": {
+			"setParent": "Set parent",
+			"removeParent": "Remove parent",
+			"linkChild": "Link existing task",
+			"detach": "Detach",
+			"selectParent": "Select a parent task",
+			"selectChild": "Select an existing child task",
+			"search": "Search by title or task reference…",
+			"empty": "No eligible tasks found",
+			"loading": "Loading tasks…",
+			"loadError": "Unable to load tasks.",
+			"retry": "Retry",
+			"linkError": "Unable to link this task. It may already have a parent or create a cycle.",
+			"detachError": "Unable to remove the link.",
+			"createChild": "Create subtask"
 		}
 	},
 	"invitations": {

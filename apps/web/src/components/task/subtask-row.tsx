@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
+import { Unlink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import TaskCardContextMenuContent from "@/components/kanban-board/task-card-context-menu/task-card-context-menu-content";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { getColumnIcon } from "@/lib/column";
@@ -24,6 +26,8 @@ type SubtaskRowProps = {
   onToggleSelection: () => void;
   onNavigate: () => void;
   onDeleteClick: () => void;
+  onDetachClick: () => void;
+  isDetaching: boolean;
 };
 
 export default function SubtaskRow({
@@ -38,6 +42,8 @@ export default function SubtaskRow({
   onToggleSelection,
   onNavigate,
   onDeleteClick,
+  onDetachClick,
+  isDetaching,
 }: SubtaskRowProps) {
   const { t } = useTranslation();
 
@@ -79,6 +85,17 @@ export default function SubtaskRow({
                 {task.title}
               </span>
             </button>
+
+            <Button
+              size="xs"
+              variant="ghost"
+              aria-label={t("tasks:hierarchy.detach")}
+              title={t("tasks:hierarchy.detach")}
+              disabled={isDetaching}
+              onClick={onDetachClick}
+            >
+              <Unlink className="size-3" />
+            </Button>
 
             <SubtaskAssigneePopover tasks={tasks} workspaceId={workspaceId}>
               <button

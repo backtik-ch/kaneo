@@ -1426,6 +1426,22 @@
 			"searchActions": "Acties zoeken...",
 			"noActionsFound": "Geen acties gevonden.",
 			"changeStatus": "Status wijzigen"
+		},
+		"hierarchy": {
+			"setParent": "Bovenliggende taak instellen",
+			"removeParent": "Bovenliggende taak verwijderen",
+			"linkChild": "Bestaande taak koppelen",
+			"detach": "Ontkoppelen",
+			"selectParent": "Bovenliggende taak selecteren",
+			"selectChild": "Bestaande subtaak selecteren",
+			"search": "Zoeken op titel of taaknummer…",
+			"empty": "Geen geschikte taken gevonden",
+			"loading": "Taken laden…",
+			"loadError": "Taken konden niet worden geladen.",
+			"retry": "Opnieuw proberen",
+			"linkError": "Deze taak kan niet worden gekoppeld. Er is mogelijk al een bovenliggende taak of er zou een cyclus ontstaan.",
+			"detachError": "De koppeling kon niet worden verwijderd.",
+			"createChild": "Subtaak maken"
 		}
 	},
 	"invitations": {

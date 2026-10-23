@@ -816,6 +816,9 @@ export const taskRelationTable = pgTable(
   (table) => [
     index("task_relation_source_idx").on(table.sourceTaskId),
     index("task_relation_target_idx").on(table.targetTaskId),
+    uniqueIndex("task_relation_single_parent_idx")
+      .on(table.targetTaskId)
+      .where(sql`${table.relationType} = 'subtask'`),
   ],
 );
 

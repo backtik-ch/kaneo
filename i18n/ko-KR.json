@@ -1653,6 +1653,22 @@
 			"searchActions": "작업 검색...",
 			"noActionsFound": "작업을 찾을 수 없습니다.",
 			"changeStatus": "상태 변경"
+		},
+		"hierarchy": {
+			"setParent": "상위 작업 설정",
+			"removeParent": "상위 작업 연결 해제",
+			"linkChild": "기존 작업 연결",
+			"detach": "연결 해제",
+			"selectParent": "상위 작업 선택",
+			"selectChild": "기존 하위 작업 선택",
+			"search": "제목 또는 작업 번호로 검색…",
+			"empty": "연결 가능한 작업이 없습니다",
+			"loading": "작업 불러오는 중…",
+			"loadError": "작업을 불러올 수 없습니다.",
+			"retry": "다시 시도",
+			"linkError": "작업을 연결할 수 없습니다. 이미 상위 작업이 있거나 순환 관계가 발생할 수 있습니다.",
+			"detachError": "연결을 해제할 수 없습니다.",
+			"createChild": "하위 작업 만들기"
 		}
 	},
 	"invitations": {

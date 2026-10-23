@@ -1,5 +1,3 @@
-import { useNavigate } from "@tanstack/react-router";
-import { ArrowUpRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import Activity from "@/components/activity";
 import CommentInput from "@/components/activity/comment-input";
@@ -11,9 +9,9 @@ import useGetActivitiesByTaskId from "@/hooks/queries/activity/use-get-activitie
 import useExternalLinks from "@/hooks/queries/external-link/use-external-links";
 import useGetProject from "@/hooks/queries/project/use-get-project";
 import useGetTask from "@/hooks/queries/task/use-get-task";
-import useGetTaskRelations from "@/hooks/queries/task-relation/use-get-task-relations";
 import type { ExternalLink } from "@/types/external-link";
 import TaskDescription from "./task-description";
+import TaskParent from "./task-parent";
 import TaskRelations from "./task-relations";
 import TaskSubtasks from "./task-subtasks";
 import TaskTitle from "./task-title";
@@ -32,47 +30,24 @@ export default function TaskDetailsContent({
   className,
 }: TaskDetailsContentProps) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { data: task } = useGetTask(taskId ?? "");
   const { data: project } = useGetProject({ id: projectId, workspaceId });
   const { data: activities = [] } = useGetActivitiesByTaskId(taskId ?? "");
   const { data: externalLinks = [], isLoading: isLoadingExternalLinks } =
     useExternalLinks(taskId ?? "");
-  const { data: relations = [] } = useGetTaskRelations(taskId ?? "");
   const { user } = useAuth();
-
-  const parentRelation = relations.find(
-    (rel) => rel.relationType === "subtask" && rel.targetTaskId === taskId,
-  );
-  const parentTask = parentRelation?.sourceTask;
 
   if (!taskId) return null;
 
   return (
     <div className={`${className} gap-4`}>
       <div className="flex flex-col gap-2.5">
-        {parentTask && (
-          <button
-            type="button"
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit"
-            onClick={() =>
-              navigate({
-                to: "/dashboard/workspace/$workspaceId/project/$projectId/task/$taskId",
-                params: {
-                  workspaceId,
-                  projectId,
-                  taskId: parentTask.id,
-                },
-              })
-            }
-          >
-            <ArrowUpRight className="size-3" />
-            <span>
-              {t("tasks:detail.subtaskOf")}{" "}
-              <span className="font-medium">{parentTask.title}</span>
-            </span>
-          </button>
-        )}
+        <TaskParent
+          key={taskId}
+          taskId={taskId}
+          projectId={projectId}
+          workspaceId={workspaceId}
+        />
         <p className="text-xs font-semibold text-foreground/70">
           {project?.slug}-{task?.number}
         </p>
