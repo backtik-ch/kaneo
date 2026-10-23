@@ -355,6 +355,65 @@ export function registerTools(
   );
 
   server.registerTool(
+    "get_task_relations",
+    {
+      description:
+        "List a task's relations, including parent tasks, subtasks, blocking and related tasks.",
+      inputSchema: z.object({ taskId: nonEmptyString }),
+    },
+    async (args) =>
+      run(() =>
+        client.json(`/api/task-relation/${encodeURIComponent(args.taskId)}`, {
+          method: "GET",
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "create_task_relation",
+    {
+      description:
+        "Create a relation between two existing tasks. For subtask, the source is the parent and the target is the child. For blocks, the source blocks the target.",
+      inputSchema: z.object({
+        sourceTaskId: nonEmptyString.describe(
+          "Source task ID (parent task for a subtask relation)",
+        ),
+        targetTaskId: nonEmptyString.describe(
+          "Target task ID (child task for a subtask relation)",
+        ),
+        relationType: z.enum(["subtask", "blocks", "related"]),
+      }),
+    },
+    async (args) =>
+      run(() =>
+        client.json("/api/task-relation", {
+          method: "POST",
+          body: JSON.stringify({
+            sourceTaskId: args.sourceTaskId,
+            targetTaskId: args.targetTaskId,
+            relationType: args.relationType,
+          }),
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "delete_task_relation",
+    {
+      description:
+        "Delete a task relation by its relation ID without deleting either task.",
+      inputSchema: z.object({ relationId: nonEmptyString }),
+    },
+    async (args) =>
+      run(() =>
+        client.json(
+          `/api/task-relation/${encodeURIComponent(args.relationId)}`,
+          { method: "DELETE" },
+        ),
+      ),
+  );
+
+  server.registerTool(
     "list_task_comments",
     {
       description: "List comments on a task.",

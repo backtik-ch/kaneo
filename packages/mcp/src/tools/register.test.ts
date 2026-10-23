@@ -214,3 +214,137 @@ describe("registerTools", () => {
     ).toThrow();
   });
 });
+
+describe("task relation tools", () => {
+  function setup() {
+    const { server, tools } = createServerMock();
+    const client = { json: vi.fn() };
+    registerTools(server as never, { client: client as never });
+    return { tools, client };
+  }
+
+  it("retrieves incoming and outgoing relations with their task data", async () => {
+    const { tools, client } = setup();
+    const relations = [
+      {
+        id: "relation-1",
+        sourceTaskId: "parent-1",
+        targetTaskId: "task /1",
+        relationType: "subtask",
+        sourceTask: { id: "parent-1", title: "Parent" },
+        targetTask: { id: "task /1", title: "Child" },
+      },
+      {
+        id: "relation-2",
+        sourceTaskId: "task /1",
+        targetTaskId: "child-1",
+        relationType: "subtask",
+        sourceTask: { id: "task /1", title: "Child" },
+        targetTask: { id: "child-1", title: "Nested child" },
+      },
+    ];
+    client.json.mockResolvedValue(relations);
+
+    const result = await tools.get("get_task_relations")?.handler({
+      taskId: "task /1",
+    });
+
+    expect(client.json).toHaveBeenCalledExactlyOnceWith(
+      "/api/task-relation/task%20%2F1",
+      { method: "GET" },
+    );
+    expect(result?.isError).toBe(false);
+    expect(JSON.parse(result?.content[0]?.text ?? "null")).toEqual(relations);
+  });
+
+  it.each([
+    "subtask",
+    "blocks",
+    "related",
+  ])("creates a %s relation preserving source and target direction", async (relationType) => {
+    const { tools, client } = setup();
+    const input = {
+      sourceTaskId: "parent-1",
+      targetTaskId: "child-1",
+      relationType,
+    };
+    const relation = { id: "relation-1", ...input };
+    client.json.mockResolvedValue(relation);
+    const tool = tools.get("create_task_relation");
+    expect(tool?.config.inputSchema?.parse(input)).toEqual(input);
+
+    const result = await tool?.handler(input);
+
+    expect(client.json).toHaveBeenCalledExactlyOnceWith("/api/task-relation", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+    expect(result?.isError).toBe(false);
+    expect(JSON.parse(result?.content[0]?.text ?? "null")).toEqual(relation);
+  });
+
+  it("deletes only the relation identified by relationId", async () => {
+    const { tools, client } = setup();
+    client.json.mockResolvedValue({ id: "relation /1" });
+
+    const result = await tools.get("delete_task_relation")?.handler({
+      relationId: "relation /1",
+    });
+
+    expect(client.json).toHaveBeenCalledExactlyOnceWith(
+      "/api/task-relation/relation%20%2F1",
+      { method: "DELETE" },
+    );
+    expect(result?.isError).toBe(false);
+  });
+
+  it.each([
+    ["get_task_relations", { taskId: " " }],
+    ["delete_task_relation", { relationId: " " }],
+    [
+      "create_task_relation",
+      { sourceTaskId: " ", targetTaskId: "child-1", relationType: "subtask" },
+    ],
+    [
+      "create_task_relation",
+      { sourceTaskId: "parent-1", targetTaskId: " ", relationType: "subtask" },
+    ],
+    [
+      "create_task_relation",
+      {
+        sourceTaskId: "parent-1",
+        targetTaskId: "child-1",
+        relationType: "parent",
+      },
+    ],
+  ])("rejects invalid input for %s", (name, input) => {
+    const { tools, client } = setup();
+    const schema = tools.get(name)?.config.inputSchema;
+    expect(schema).toBeDefined();
+    expect(() => schema?.parse(input)).toThrow();
+    expect(client.json).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["get_task_relations", { taskId: "task-1" }],
+    ["delete_task_relation", { relationId: "relation-1" }],
+    [
+      "create_task_relation",
+      {
+        sourceTaskId: "parent-1",
+        targetTaskId: "child-1",
+        relationType: "subtask",
+      },
+    ],
+  ])("returns API failures as MCP errors for %s", async (name, input) => {
+    const { tools, client } = setup();
+    client.json.mockRejectedValue(new Error("Workspace access denied"));
+
+    const result = await tools.get(name)?.handler(input);
+
+    expect(result?.isError).toBe(true);
+    expect(JSON.parse(result?.content[0]?.text ?? "null")).toEqual({
+      error: "Workspace access denied",
+    });
+  });
+});

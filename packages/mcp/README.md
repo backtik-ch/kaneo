@@ -113,5 +113,17 @@ On the first tool call that needs Kaneo, the server:
 - Session: `whoami`, `list_workspaces`
 - Projects: `list_projects`, `get_project`, `create_project`, `update_project`
 - Tasks: `list_tasks`, `get_task`, `create_task`, `update_task`, `move_task`, `update_task_status`
+- Task relations: `get_task_relations`, `create_task_relation`, `delete_task_relation`
 - Comments: `list_task_comments`, `create_task_comment`
 - Labels: `list_workspace_labels`, `create_label`, `attach_label_to_task`, `detach_label_from_task`
+
+### Subtasks and task relations
+
+Subtasks are ordinary tasks linked by a relation. To create a subtask:
+
+1. Create the child task with `create_task`.
+2. Call `create_task_relation` with `sourceTaskId` set to the parent task ID, `targetTaskId` set to the child task ID, and `relationType: "subtask"`.
+
+The same tool supports `relationType: "blocks"` (the source blocks the target) and `relationType: "related"`.
+
+Call `get_task_relations` with a `taskId` to retrieve incoming and outgoing relations, including the associated task data. To remove a link, call `delete_task_relation` with `relationId` set to the relation's `id`; both tasks are preserved.
