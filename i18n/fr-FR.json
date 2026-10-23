@@ -1651,6 +1651,22 @@
 			"searchActions": "Rechercher des actions...",
 			"noActionsFound": "Aucune action trouvée.",
 			"changeStatus": "Changer le statut"
+		},
+		"hierarchy": {
+			"setParent": "Définir un parent",
+			"removeParent": "Retirer le parent",
+			"linkChild": "Lier une tâche existante",
+			"detach": "Détacher",
+			"selectParent": "Sélectionner une tâche parente",
+			"selectChild": "Sélectionner une tâche enfant existante",
+			"search": "Rechercher par titre ou référence…",
+			"empty": "Aucune tâche compatible trouvée",
+			"loading": "Chargement des tâches…",
+			"loadError": "Impossible de charger les tâches.",
+			"retry": "Réessayer",
+			"linkError": "Impossible de lier cette tâche. Elle possède peut-être déjà un parent ou créerait un cycle.",
+			"detachError": "Impossible de retirer le lien.",
+			"createChild": "Créer une sous-tâche"
 		}
 	},
 	"invitations": {

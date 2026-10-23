@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Link2, Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import useCreateTask from "@/hooks/mutations/task/use-create-task";
 import { useDeleteTask } from "@/hooks/mutations/task/use-delete-task";
 import useCreateTaskRelation from "@/hooks/mutations/task-relation/use-create-task-relation";
+import useDeleteTaskRelation from "@/hooks/mutations/task-relation/use-delete-task-relation";
 import useGetTaskRelations from "@/hooks/queries/task-relation/use-get-task-relations";
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { useGetActiveWorkspaceUsers } from "@/hooks/queries/workspace-users/use-get-active-workspace-users";
@@ -30,6 +31,7 @@ import { toast } from "@/lib/toast";
 import queryClient from "@/query-client";
 import type Task from "@/types/task";
 import SubtaskRow from "./subtask-row";
+import TaskHierarchyPicker from "./task-hierarchy-picker";
 
 type TaskSubtasksProps = {
   taskId: string;
@@ -46,6 +48,8 @@ export default function TaskSubtasks({
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const detachRelation = useDeleteTaskRelation(taskId);
   const [newTitle, setNewTitle] = useState("");
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -298,14 +302,25 @@ export default function TaskSubtasks({
               </span>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="xs"
-            className="text-muted-foreground"
-            onClick={() => setIsAdding(true)}
-          >
-            <Plus className="size-3.5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="xs" onClick={() => setLinkOpen(true)}>
+              <Link2 className="size-3.5" />
+              {t("tasks:hierarchy.linkChild")}
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              aria-label={t("tasks:hierarchy.createChild")}
+              title={t("tasks:hierarchy.createChild")}
+              className="text-muted-foreground"
+              onClick={() => {
+                setIsOpen(true);
+                setIsAdding(true);
+              }}
+            >
+              <Plus className="size-3.5" />
+            </Button>
+          </div>
         </div>
 
         <CollapsibleContent>
@@ -346,6 +361,14 @@ export default function TaskSubtasks({
                         },
                       })
                     }
+                    onDetachClick={async () => {
+                      try {
+                        await detachRelation.mutateAsync(subtask.relation.id);
+                      } catch {
+                        toast.error(t("tasks:hierarchy.detachError"));
+                      }
+                    }}
+                    isDetaching={detachRelation.isPending}
                     onDeleteClick={() => setDeleteTaskId(subtask.task.id)}
                   />
                 );
@@ -399,6 +422,14 @@ export default function TaskSubtasks({
         </CollapsibleContent>
       </Collapsible>
 
+      <TaskHierarchyPicker
+        key={taskId}
+        taskId={taskId}
+        projectId={projectId}
+        mode="child"
+        open={linkOpen}
+        onOpenChange={setLinkOpen}
+      />
       <AlertDialog
         open={!!deleteTaskId}
         onOpenChange={(open) => !open && setDeleteTaskId(null)}

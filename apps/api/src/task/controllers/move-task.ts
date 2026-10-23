@@ -8,6 +8,7 @@ import {
   taskTable,
 } from "../../database/schema";
 import { publishEvent } from "../../events";
+import { assertTaskCanLeaveProject } from "../../task-relation/hierarchy";
 import getNextTaskNumber from "./get-next-task-number";
 
 type DbOrTx = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -132,6 +133,7 @@ async function moveTask({
   );
 
   const movedTask = await db.transaction(async (tx) => {
+    await assertTaskCanLeaveProject(tx, taskId, existingTask.projectId);
     const [nextTaskNumber, nextPosition] = await Promise.all([
       getNextTaskNumber(destinationProjectId, tx),
       getNextTaskPosition(

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { describeRoute, resolver, validator } from "hono-openapi";
@@ -75,17 +75,22 @@ const taskRelation = new Hono<{
       if (!userId) {
         throw new HTTPException(401, { message: "Unauthorized" });
       }
-      const { sourceTaskId } = c.req.valid("json");
-      const [task] = await db
-        .select({ workspaceId: projectTable.workspaceId })
+      const { sourceTaskId, targetTaskId } = c.req.valid("json");
+      const tasks = await db
+        .select({ id: taskTable.id, workspaceId: projectTable.workspaceId })
         .from(taskTable)
         .innerJoin(projectTable, eq(taskTable.projectId, projectTable.id))
-        .where(eq(taskTable.id, sourceTaskId))
-        .limit(1);
+        .where(inArray(taskTable.id, [sourceTaskId, targetTaskId]));
+      const task = tasks.find((candidate) => candidate.id === sourceTaskId);
+      const target = tasks.find((candidate) => candidate.id === targetTaskId);
       if (!task) {
         throw new HTTPException(404, { message: "Source task not found" });
       }
       await validateWorkspaceAccess(userId, task.workspaceId);
+      if (!target)
+        throw new HTTPException(404, { message: "Target task not found" });
+      if (target.workspaceId !== task.workspaceId)
+        await validateWorkspaceAccess(userId, target.workspaceId);
       return next();
     },
     async (c) => {

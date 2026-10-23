@@ -4,6 +4,10 @@ import db from "../../database";
 import { columnTable, taskTable } from "../../database/schema";
 import { publishEvent } from "../../events";
 import { deleteOrphanedAssets } from "../../storage/cleanup-assets";
+import {
+  assertTaskCanLeaveProject,
+  lockTaskInProject,
+} from "../../task-relation/hierarchy";
 import { assertValidTaskStatus } from "../validate-task-fields";
 
 async function updateTask(
@@ -38,22 +42,28 @@ async function updateTask(
     ),
   });
 
-  const [updatedTask] = await db
-    .update(taskTable)
-    .set({
-      title,
-      status,
-      columnId: column?.id ?? null,
-      startDate: startDate || null,
-      dueDate: dueDate || null,
-      projectId,
-      description,
-      priority,
-      position,
-      userId: userId || null,
-    })
-    .where(eq(taskTable.id, id))
-    .returning();
+  const updatedTask = await db.transaction(async (tx) => {
+    if (existingTask.projectId !== projectId)
+      await assertTaskCanLeaveProject(tx, id, existingTask.projectId);
+    else await lockTaskInProject(tx, id, existingTask.projectId);
+    const [updated] = await tx
+      .update(taskTable)
+      .set({
+        title,
+        status,
+        columnId: column?.id ?? null,
+        startDate: startDate || null,
+        dueDate: dueDate || null,
+        projectId,
+        description,
+        priority,
+        position,
+        userId: userId || null,
+      })
+      .where(eq(taskTable.id, id))
+      .returning();
+    return updated;
+  });
 
   if (!updatedTask) {
     throw new HTTPException(500, {

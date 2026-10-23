@@ -1653,6 +1653,22 @@
 			"searchActions": "Aktionen suchen...",
 			"noActionsFound": "Keine Aktionen gefunden.",
 			"changeStatus": "Status ändern"
+		},
+		"hierarchy": {
+			"setParent": "Übergeordnete Aufgabe festlegen",
+			"removeParent": "Übergeordnete Aufgabe entfernen",
+			"linkChild": "Vorhandene Aufgabe verknüpfen",
+			"detach": "Verknüpfung lösen",
+			"selectParent": "Übergeordnete Aufgabe auswählen",
+			"selectChild": "Vorhandene Unteraufgabe auswählen",
+			"search": "Nach Titel oder Aufgabenkennung suchen…",
+			"empty": "Keine passenden Aufgaben gefunden",
+			"loading": "Aufgaben werden geladen…",
+			"loadError": "Aufgaben konnten nicht geladen werden.",
+			"retry": "Erneut versuchen",
+			"linkError": "Diese Aufgabe konnte nicht verknüpft werden. Sie hat möglicherweise bereits eine übergeordnete Aufgabe oder würde einen Zyklus erzeugen.",
+			"detachError": "Die Verknüpfung konnte nicht entfernt werden.",
+			"createChild": "Unteraufgabe erstellen"
 		}
 	},
 	"invitations": {
