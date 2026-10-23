@@ -46,6 +46,7 @@ import useGetTaskRelations from "@/hooks/queries/task-relation/use-get-task-rela
 import useActiveWorkspace from "@/hooks/queries/workspace/use-active-workspace";
 import { useGetActiveWorkspaceUsers } from "@/hooks/queries/workspace-users/use-get-active-workspace-users";
 import { getColumnIcon } from "@/lib/column";
+import { getUserInitials } from "@/lib/get-user-initials";
 import { toast } from "@/lib/toast";
 import type Task from "@/types/task";
 import SubtaskAssigneePopover from "./subtask-assignee-popover";
@@ -326,10 +327,8 @@ export default function TaskRelations({
                                     src={assignee?.user?.image ?? ""}
                                     alt={assignee?.user?.name || ""}
                                   />
-                                  <AvatarFallback className="text-[9px] font-medium border border-border/30">
-                                    {assignee?.user?.name
-                                      ?.charAt(0)
-                                      .toUpperCase()}
+                                  <AvatarFallback className="font-mono text-[9px] font-medium border border-border/30">
+                                    {getUserInitials(assignee?.user?.name)}
                                   </AvatarFallback>
                                 </Avatar>
                               ) : (
